@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>交互动画 · 物态变化微观模型</title>
+<link rel="stylesheet" href="katex/katex.min.css">
 <style>
   /* ===== 主题变量 =====
      深色写在 :root（默认），浅色整组覆盖在 body.light 上 ——
@@ -226,7 +227,13 @@
     .fields dt,.fields dd{font-size:16px;}
     .tip{font-size:15px;}
   }
-</style>
+      /* ===== KaTeX 公式速记区（讲解卡片内，静态公式走 KaTeX，与匀变速统一） ===== */
+      .formulas{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);}
+      .formulas .frow{display:flex;align-items:baseline;gap:10px;font-size:15px;line-height:2.1;color:var(--text);}
+      .formulas .fl{flex:0 0 86px;color:var(--text2);font-size:14px;}
+      .formulas .fx{flex:1;min-width:0;}
+      .katex{font-size:1.06em;}
+    </style>
 </head>
 <body>
 <!-- 提前应用上次选择的主题：否则选了浅色的用户每次打开都会先闪一下深色底 -->
@@ -307,6 +314,12 @@
         <div class="row"><dt>宏观特征</dt><dd id="fMacro">—</dd></div>
         <div class="row"><dt>能量与温度变化</dt><dd id="fEnergy">—</dd></div>
       </dl>
+
+      <div class="formulas">
+        <div class="frow"><span class="fl">热力学温标</span><span class="fx">$T = t + 273.15$</span></div>
+        <div class="frow"><span class="fl">熔化 / 凝固</span><span class="fx">$Q = \pm m\lambda$</span></div>
+        <div class="frow"><span class="fl">汽化 / 液化</span><span class="fx">$Q = \pm mL$</span></div>
+      </div>
 
       <p class="tip" id="tip"></p>
     </section>
@@ -1379,6 +1392,21 @@ if (typeof ResizeObserver !== 'undefined'){
 }
 
 })();
+</script>
+<script defer src="katex/katex.min.js"></script>
+<script defer src="katex/contrib/auto-render.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  if (window.renderMathInElement){
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      throwOnError: false
+    });
+  }
+});
 </script>
 </body>
 </html>
