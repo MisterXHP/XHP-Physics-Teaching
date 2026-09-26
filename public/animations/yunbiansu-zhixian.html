@@ -278,6 +278,7 @@ var state = {
   frame:'ground',            /* ground | A | B */
   strobe:false, showB:true,
   graphObj:'both',           /* A | B | both | mark */
+  objBeforePredict:null,     /* 进入预测模式前的图像对象，退出时恢复 */
   predict:false, revealed:false, revealStart:0, revealT:0,
   ghosts:[],
   cars:{
@@ -1052,10 +1053,16 @@ $('predBtn').addEventListener('click', function(){
   $('revealBtn').disabled = !state.predict;
   if (state.predict){
     state.playing = false; $('playBtn').textContent = '▶ 播放';
+    state.objBeforePredict = state.graphObj;   /* 记住进入预测前的图像对象 */
     if (state.graphObj === 'both'){ $('objSel').value = 'A'; state.graphObj = 'A'; }
   } else {
     strokes.xt = []; strokes.vt = [];
     state.revealed = false;
+    if (state.objBeforePredict){               /* 退出预测时恢复原来的图像对象 */
+      state.graphObj = state.objBeforePredict;
+      $('objSel').value = state.objBeforePredict;
+      state.objBeforePredict = null;
+    }
   }
 });
 $('clearBtn').addEventListener('click', function(){
