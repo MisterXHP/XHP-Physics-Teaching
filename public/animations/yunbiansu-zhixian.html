@@ -260,6 +260,17 @@ var ID = { author:'熊和平（大熊印象）', version:'1.0' };
 /* =====AUTHOR_CFG_END===== */
 
 var FONT = '"Times New Roman",Times,"PingFang SC","Microsoft YaHei",sans-serif';
+/* 数学文字专用字体：优先使用 KaTeX 自带字体，使画布上的物理量与 HTML 区的公式字形统一；
+   KaTeX_Main 缺字（如中文）时，自动回退到原来的字体栈（即旧观感），不会出现空白或方框 */
+var FONT_MATH = '"KaTeX_Main",' + FONT;
+/* 预加载 KaTeX 数学字体，供画布使用（样式表里的 @font-face 此刻已解析完毕） */
+(function(){
+  if (!document.fonts || !document.fonts.load) return;
+  ['20px "KaTeX_Main"', 'italic 20px "KaTeX_Main"',
+   '600 20px "KaTeX_Main"', 'italic 600 20px "KaTeX_Main"'].forEach(function(sp){
+    try { var p = document.fonts.load(sp); if (p && p.catch) p.catch(function(){}); } catch (e) {}
+  });
+})();
 var TAU = Math.PI * 2;
 function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
 function fmt(v,d){ if(!isFinite(v)) v=0; return v.toFixed(d===undefined?1:d); }
@@ -488,20 +499,23 @@ function rrect(c,x,y,w,h,r){
   c.lineTo(x+r,y+h); c.arcTo(x,y+h,x,y+h-r,r);
   c.lineTo(x,y+r); c.arcTo(x,y,x+r,y,r); c.closePath();
 }
-/* 准 TeX 分段文字 */
+/* 准 TeX 分段文字（使用 KaTeX 数学字体，与 HTML 区公式字形保持一致） */
+function segFont(s){
+  return (s.b ? '600 ' : '') + (s.i ? 'italic ' : '') + (s.s || 15) + 'px ' + FONT_MATH;
+}
 function drawSeg(c, x, y, segs, align){
   var ws = [], i, total = 0;
   for (i = 0; i < segs.length; i++){
-    c.font = (segs[i].b ? '600 ' : '') + (segs[i].i ? 'italic ' : '') + (segs[i].s || 15) + 'px ' + FONT;
+    c.font = segFont(segs[i]);
     ws[i] = c.measureText(segs[i].t).width; total += ws[i];
   }
   var cx = align === 'center' ? x - total/2 : (align === 'right' ? x - total : x);
   var oldAlign = c.textAlign;
   for (i = 0; i < segs.length; i++){
-    c.font = (segs[i].b ? '600 ' : '') + (segs[i].i ? 'italic ' : '') + (segs[i].s || 15) + 'px ' + FONT;
+    c.font = segFont(segs[i]);
     if (segs[i].c) c.fillStyle = segs[i].c;
     c.textAlign = 'left';
-    c.fillText(segs[i].t, cx, y);
+    c.fillText(segs[i].t, cx, y - (segs[i].dy || 0));   /* dy > 0 表示上移，用于上标 */
     cx += ws[i];
   }
   c.textAlign = oldAlign;
@@ -714,7 +728,8 @@ function drawSceneRoad(c, W, H, kA, kB, fk, vis){
     } else {
       drawArrow(c, px, carY-88, px + Math.sign(kk.a)*aLen, carY-88, PAL.aArrow, 5);
       drawSeg(c, px + Math.sign(kk.a)*aLen*0.5, carY - 108,
-        [{t:'a', i:1, s:20, c:PAL.aText}, {t:' = ' + fmt(kk.a) + ' m/s²', s:20, c:PAL.aText}], 'center');
+        [{t:'a', i:1, s:20, c:PAL.aText}, {t:' = ' + fmt(kk.a) + ' m/s', s:20, c:PAL.aText},
+         {t:'2', s:14, dy:8, c:PAL.aText}], 'center');
     }
   }
 
