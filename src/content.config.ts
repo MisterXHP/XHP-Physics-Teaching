@@ -1,7 +1,10 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
-// 四个内容集合：交互动画 / 教学讲义 / 实验演示 / 资源下载
+// 两个内容集合：新知动画 / 教学讲义
+// （板块显示名：2026-09-26 由「交互动画」改为「新知动画」，目录名 animations 不变）
+// （原「实验演示 / 资源下载」两个集合已于 2026-09-26 按用户要求移除，恢复方法见
+//   D:\WorkBuddy\2026-09-26-09-04-18\移除备份-演示实验与其它资源\如何恢复.md）
 // 字段保持统一，便于共用卡片与列表组件。
 const base = {
   title: z.string(),
@@ -26,25 +29,4 @@ const lectures = defineCollection({
   schema: z.object({ ...base }),
 });
 
-const experiments = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/experiments' }),
-  schema: z.object({
-    ...base,
-    // 视频 / GIF 地址（public 相对路径或外链），可留空
-    video: z.string().optional(),
-    cover: z.string().optional(),
-  }),
-});
-
-const downloads = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/downloads' }),
-  schema: z.object({
-    ...base,
-    // 资源文件地址（public 相对路径或外链）
-    file: z.string().optional(),
-    format: z.string().optional(),
-    size: z.string().optional(),
-  }),
-});
-
-export const collections = { animations, lectures, experiments, downloads };
+export const collections = { animations, lectures };

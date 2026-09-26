@@ -28,24 +28,26 @@ const iconStyle = tone ? `color:${tone.fg};background:${tone.bg}` : undefined;
   target={external ? '_blank' : undefined}
   rel={external ? 'noopener' : undefined}
 >
-  {(icon || label) && (
-    <span class="card__top">
-      {icon && (
-        <span class="card__icon" style={iconStyle}>
-          <Icon name={icon} size={20} />
-        </span>
-      )}
-      {label && <span class="card__label">{label}</span>}
-    </span>
-  )}
-  <h3 class="card__title">
-    {title}
-    {external && (
-      <span class="card__ext">
-        <Icon name="external" size={13} />
+  <div class="card__head">
+    {icon && (
+      <span class="card__icon" style={iconStyle}>
+        <Icon name={icon} size={20} />
       </span>
     )}
-  </h3>
+    <h3 class="card__title">
+      {title}
+      {external && (
+        <span class="card__ext">
+          <Icon name="external" size={13} />
+        </span>
+      )}
+    </h3>
+  </div>
   {desc && <p class="card__desc">{desc}</p>}
-  {meta && <span class="card__meta">{meta}</span>}
+  {(label || meta) && (
+    <div class="card__foot">
+      {label && <span class="card__label">{label}</span>}
+      {meta && <span class="card__meta">{meta}</span>}
+    </div>
+  )}
 </a>

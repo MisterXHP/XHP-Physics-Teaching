@@ -12,21 +12,17 @@ export async function getStaticPaths() {
 const { topic } = Astro.props;
 const base = import.meta.env.BASE_URL;
 
-const [animations, lectures, experiments, downloads] = await Promise.all([
+const [animations, lectures] = await Promise.all([
   getCollection('animations'),
   getCollection('lectures'),
-  getCollection('experiments'),
-  getCollection('downloads'),
 ]);
 
 const pick = (arr: { data: { topic: string; date?: Date } }[]) =>
   sortByDateDesc(arr.filter((x) => x.data.topic === topic.name));
 
 const groups = [
-  { label: '交互动画', lib: 'animations', href: 'play', icon: 'play', items: pick(animations) },
+  { label: '新知动画', lib: 'animations', href: 'play', icon: 'play', items: pick(animations) },
   { label: '教学讲义', lib: 'lectures', href: 'lectures', icon: 'doc', items: pick(lectures) },
-  { label: '演示实验', lib: 'experiments', href: 'experiments', icon: 'flask', items: pick(experiments) },
-  { label: '其它资源', lib: 'downloads', href: 'downloads', icon: 'download', items: pick(downloads) },
 ];
 
 const shown = groups.filter((g) => g.items.length > 0);

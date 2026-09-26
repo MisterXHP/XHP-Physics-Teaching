@@ -1,0 +1,57 @@
+---
+import Base from '../layouts/Base.astro';
+const base = import.meta.env.BASE_URL;
+---
+<Base title="页面不存在">
+  <div class="p404">
+    <h1 class="page-title">页面不存在</h1>
+    <p class="p404__lead">
+      这个网址可能已经变动、或者输错了。<strong><span id="p404-count">3</span></strong> 秒后自动回到首页。
+    </p>
+    <p class="p404__actions">
+      <a class="btn" href={base}>立即回到首页</a>
+    </p>
+    <p class="p404__hint">也可以从顶部导航直接进入：新知动画 · 教学讲义</p>
+  </div>
+</Base>
+
+<script is:inline define:vars={{ base }}>
+  (function () {
+    var n = 3;
+    var el = document.getElementById('p404-count');
+    var timer = setInterval(function () {
+      n -= 1;
+      if (el) el.textContent = String(n > 0 ? n : 0);
+      if (n <= 0) {
+        clearInterval(timer);
+        window.location.replace(base);
+      }
+    }, 1000);
+  })();
+</script>
+
+<style>
+  .p404 {
+    text-align: center;
+    padding: 32px 0 0;
+  }
+  .p404__lead {
+    color: var(--text-muted);
+    margin: 12px 0 0;
+    font-size: 17px;
+  }
+  .p404__lead strong {
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    font-size: 20px;
+  }
+  .p404__actions {
+    margin: 26px 0 0;
+  }
+  .p404__hint {
+    margin: 28px auto 0;
+    max-width: 560px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+</style>

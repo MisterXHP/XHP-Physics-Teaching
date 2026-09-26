@@ -337,10 +337,15 @@ main {
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(59, 130, 246, 0.22);
 }
-.card__top {
+/* 图标与标题同一行（图标在标题左侧） */
+.card__head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+}
+.card__head .card__title {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .card__icon {
   flex: none;
@@ -353,14 +358,25 @@ main {
   background: color-mix(in srgb, var(--primary) 16%, transparent);
   color: var(--primary);
 }
-.card__label {
-  font-size: 13px;
-  color: var(--text-muted);
-}
 .card__title {
   font-size: 18px;
   font-weight: 600;
   margin: 0;
+}
+/* 底部一行：主题标签 · 日期（次要信息统一收在这里） */
+.card__foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.card__label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.card__label + .card__meta::before {
+  content: '·';
+  margin-right: 6px;
 }
 .card__ext {
   display: inline-flex;

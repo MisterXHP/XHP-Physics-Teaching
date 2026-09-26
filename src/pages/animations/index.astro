@@ -8,9 +8,9 @@ import { sortByDateDesc, formatDate } from '../../utils';
 const base = import.meta.env.BASE_URL;
 const items = sortByDateDesc(await getCollection('animations'));
 ---
-<Base title="交互动画">
+<Base title="新知动画">
   <header class="list-head">
-    <h1 class="page-title">交互动画</h1>
+    <h1 class="page-title">新知动画</h1>
     <p class="page-lead">可以动手操作的物理模拟。点击卡片即可全屏打开，用鼠标和滑块探索其中的物理规律。</p>
   </header>
 
@@ -21,7 +21,7 @@ const items = sortByDateDesc(await getCollection('animations'));
   </nav>
 
   {items.length === 0 ? (
-    <p class="notice">还没有交互动画。</p>
+    <p class="notice">还没有新知动画。</p>
   ) : (
     <div class="grid">
       {items.map((it) => (

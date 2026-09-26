@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
-  "description": "熊和平（大熊印象）中学物理教学资源站：交互动画、教学讲义、实验演示与资源下载",
+  "description": "熊和平（大熊印象）中学物理教学资源站：新知动画、教学讲义",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",

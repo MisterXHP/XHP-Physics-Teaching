@@ -15,10 +15,8 @@ const picks = (featured.length ? featured : animations).slice(0, 3);
 const latestLectures = lectures.slice(0, 3);
 
 const libs = [
-  { href: `${base}animations/`, icon: 'play', title: '交互动画', desc: '可动手操作的物理模拟，点开即玩。' },
+  { href: `${base}animations/`, icon: 'play', title: '新知动画', desc: '可动手操作的物理模拟，点开即玩。' },
   { href: `${base}lectures/`, icon: 'doc', title: '教学讲义', desc: '知识点讲解与典型例题，公式排版清晰。' },
-  { href: `${base}experiments/`, icon: 'flask', title: '演示实验', desc: '实验过程的视频与动画演示。' },
-  { href: `${base}downloads/`, icon: 'download', title: '其它资源', desc: '教案、学案等可下载的教学资料。' },
 ];
 
 function topicName(name: string) {
@@ -29,11 +27,11 @@ function topicName(name: string) {
   <section class="hero">
     <h1 class="page-title">大熊印象 · 物理星河</h1>
     <p class="hero__lead">
-      这里有可以动手操作的物理交互动画、图文并茂的教学讲义、直观的实验演示，以及可下载的教学资源。<br />
+      这里有可以动手操作的新知动画，以及图文并茂的教学讲义。<br />
       希望它能帮到每一位正在学物理、教物理的人。
     </p>
     <div class="hero__actions">
-      <a class="btn" href={`${base}animations/`}>浏览交互动画</a>
+      <a class="btn" href={`${base}animations/`}>浏览新知动画</a>
       <a class="btn ghost" href={`${base}search/`}>搜索内容</a>
     </div>
   </section>
