@@ -716,23 +716,27 @@ function resize(){
   fitViewport(cssW, cssH);
 }
 
-/* 「余量归画布」—— 行高由右栏知识讲解的文字决定，左栏一般用不满。
-   做法：量出两栏高度差（右栏撑起的行高 − 左栏当前自然高），全部加给画布，
-   让动画区补位、两栏等高；温度调节卡保持自然高度、内容顶对齐（不再被拉伸居中）。
+/* 「余量归画布」—— 行高由右栏知识讲解的文字决定，左栏内容一般用不满，
+   余量表现为左栏内部（控制卡下方）的一块空白。做法：量出这块空白（见
+   measureSlack），全部加给画布，让动画区补位；温度调节卡保持自然高度、
+   内容顶对齐（不再被拉伸居中）。
    这么做不会让整页变高 —— 行高本来就是右栏撑住的，画布只是把空出来的位置占满。
    ★ reAbsorb（状态变化时重校）已停用：右栏文字随状态变长变短，动画途中重校高度
      会有肉眼可见的跳变，现按「画布高度一次定好、全程恒定」处理（详见该函数处说明）。
    配图版走固定尺寸（__REC.fixed），入口直接跳过。 */
 
-/* 量可转给画布的余量（= 两栏行高 − 左栏当前自然高）。
-   旧法是「控制卡被 flex:1 拉伸的高度 − 自然高度」，但控制卡已不再拉伸（内容顶对齐），
-   故改为直接量两栏差：右栏（知识讲解）撑起行高，左栏差多少就把画布加多少。
-   控制卡自然高、内容顶对齐；画布长高补位，两栏依旧等高。 */
+/* 量可转给画布的余量（= 左栏被拉伸后，内容底边到自身底边的空白）。
+   ★ 不能用「右栏 − 左栏」的 offsetHeight 相减：栅格 stretch 会把左栏元素
+   本身也拉到与右栏等高，两栏恒相等、差恒为 0 —— 余量其实藏在左栏内部
+   （控制卡下方的空白）。改为量左栏最后一个子元素的底边到左栏底边的距离。 */
 function measureSlack(){
   var left = document.querySelector('.col-left'), right = document.querySelector('.col-right');
-  if (!left || !right) return 0;
-  var slack = right.offsetHeight - left.offsetHeight;   /* grid stretch 下右栏高 = 行高 */
-  return slack > 0 ? slack : 0;
+  if (!left || !right || !left.children.length) return 0;
+  var last = left.children[left.children.length - 1];
+  var mb = parseFloat(getComputedStyle(last).marginBottom) || 0;
+  var contentBottom = last.getBoundingClientRect().bottom - left.getBoundingClientRect().top + mb;
+  var slack = left.clientHeight - contentBottom;
+  return slack > 2 ? Math.round(slack) : 0;
 }
 
 /* 吸收余量时画布能长到多高：宽高比 0.85 + 硬顶 640（比初始预算的 0.72 宽松，
