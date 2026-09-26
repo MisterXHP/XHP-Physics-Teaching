@@ -27,6 +27,10 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Ensure Pagefind binary (Linux)
+        run: |
+          VER=$(node -p "require('./node_modules/pagefind/package.json').optionalDependencies['@pagefind/linux-x64']")
+          npm install --no-save --no-audit --no-fund "@pagefind/linux-x64@$VER"
       - name: Build site
         run: npm run build
       - name: Upload artifact
