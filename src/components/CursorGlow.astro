@@ -1,0 +1,251 @@
+---
+// 光标动效（全屏 Canvas 叠加层，纯前端零依赖），含两种效果：
+//   ① 移动：粒子星尘跟随鼠标
+//   ② 点击空白处：光圈由小变大并渐渐消失（点链接/卡片/按钮时不出现）
+// 共用一块画布 + 一个 rAF 循环，空闲时彻底停掉。
+// 自动规避：触屏/无鼠标设备、系统「减少动态效果」偏好。
+// 只在普通页面启用（播放页不含本组件，保持动画画面干净）。
+---
+<canvas class="cursor-glow" id="cursor-glow" aria-hidden="true"></canvas>
+
+<script>
+  (function () {
+    var mq = window.matchMedia;
+    if (!mq) return;
+    // 触屏 / 无精确指针设备不启用；系统开启"减少动态效果"也不启用
+    if (!mq('(hover: hover) and (pointer: fine)').matches) return;
+    if (mq('(prefers-reduced-motion: reduce)').matches) return;
+
+    var cv = document.getElementById('cursor-glow');
+    if (!cv) return;
+    var ctx = cv.getContext('2d');
+    if (!ctx) return;
+
+    var TAU = Math.PI * 2;
+
+    // 深色星空下用发光的浅色粒子；浅色页面上换成压深一档的色
+    var DARK = ['#93c5fd', '#a5b4fc', '#c4b5fd', '#f9a8d4', '#ffffff'];
+    var LIGHT = ['#2563eb', '#7c3aed', '#db2777', '#0891b2'];
+    var RING_DARK = ['#bfdbfe', '#ddd6fe', '#fbcfe8'];
+    var RING_LIGHT = ['#2563eb', '#7c3aed', '#db2777'];
+
+    var MAX = 150;          // 粒子上限，防极端快速划动时堆积
+    var DECAY = [0.010, 0.028];
+    var RING_MS = 700;      // 光圈从出现到消失的总时长
+
+    var W = 0, H = 0, dpr = 1;
+    var parts = [];
+    var rings = [];
+    var raf = 0, last = 0;
+    var px = 0, py = 0, hasLast = false;
+    var sprites = {};
+
+    function isLight() {
+      return document.documentElement.getAttribute('data-theme') === 'light';
+    }
+
+    // 把 #rrggbb 转成带透明度的 rgba()
+    function rgba(hex, a) {
+      var h = hex.replace('#', '');
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      var n = parseInt(h, 16);
+      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+
+    // 每种颜色预渲染一张径向渐变贴图，避免每帧 createRadialGradient（性能大头）
+    function sprite(hex) {
+      if (sprites[hex]) return sprites[hex];
+      var s = 64;
+      var c = document.createElement('canvas');
+      c.width = c.height = s;
+      var g2 = c.getContext('2d');
+      var g = g2.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+      g.addColorStop(0, rgba(hex, 1));
+      g.addColorStop(0.3, rgba(hex, 0.5));
+      g.addColorStop(1, rgba(hex, 0));
+      g2.fillStyle = g;
+      g2.fillRect(0, 0, s, s);
+      sprites[hex] = c;
+      return c;
+    }
+
+    function applyComposite() {
+      ctx.globalCompositeOperation = isLight() ? 'source-over' : 'lighter';
+    }
+
+    function resize() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = cv.clientWidth || window.innerWidth;
+      H = cv.clientHeight || window.innerHeight;
+      cv.width = Math.max(1, Math.round(W * dpr));
+      cv.height = Math.max(1, Math.round(H * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      applyComposite();
+    }
+
+    /* ---------- ① 跟随粒子 ---------- */
+    function spawn(x, y, dist) {
+      var pal = isLight() ? LIGHT : DARK;
+      var n = Math.min(4, 1 + Math.floor(dist / 14));
+      for (var i = 0; i < n; i++) {
+        if (parts.length >= MAX) break;
+        var ang = Math.random() * TAU;
+        var sp = Math.random() * 0.4;
+        parts.push({
+          x: x + (Math.random() - 0.5) * 7,
+          y: y + (Math.random() - 0.5) * 7,
+          vx: Math.cos(ang) * sp,
+          vy: Math.sin(ang) * sp - 0.14,
+          r: 1.1 + Math.random() * 2.1,
+          life: 1,
+          decay: DECAY[0] + Math.random() * (DECAY[1] - DECAY[0]),
+          c: pal[(Math.random() * pal.length) | 0],
+        });
+      }
+    }
+
+    /* ---------- ② 点击空白处的光圈 ---------- */
+    function ring(x, y) {
+      var pal = isLight() ? RING_LIGHT : RING_DARK;
+      rings.push({
+        x: x,
+        y: y,
+        born: 0,                                   // 累计经过的毫秒
+        c: pal[(Math.random() * pal.length) | 0],
+      });
+      if (rings.length > 6) rings.shift();          // 狂点时也别堆积
+    }
+
+    // 点在链接 / 按钮 / 表单控件上不算「空白处」，不放光圈
+    var INTERACTIVE =
+      'a,button,input,select,textarea,label,summary,[role="button"],[contenteditable="true"]';
+    function isBlank(target) {
+      return !(target && target.closest && target.closest(INTERACTIVE));
+    }
+
+    function frame(t) {
+      var dt = last ? Math.min(48, t - last) : 16;
+      last = t;
+      var k = dt / 16.7;
+      ctx.clearRect(0, 0, W, H);
+
+      /* 粒子 */
+      for (var i = parts.length - 1; i >= 0; i--) {
+        var p = parts[i];
+        p.x += p.vx * k;
+        p.y += p.vy * k;
+        p.vy += 0.005 * k;                          // 轻微下坠，像星尘
+        p.life -= p.decay * k;
+        if (p.life <= 0) {
+          parts.splice(i, 1);
+          continue;
+        }
+        var d = p.r * 4.2 * (0.5 + p.life * 0.85);
+        ctx.globalAlpha = p.life * 0.9;
+        ctx.drawImage(sprite(p.c), p.x - d / 2, p.y - d / 2, d, d);
+      }
+      ctx.globalAlpha = 1;
+
+      /* 光圈 */
+      for (var j = rings.length - 1; j >= 0; j--) {
+        var g = rings[j];
+        g.born += dt;
+        var u = g.born / RING_MS;
+        if (u >= 1) {
+          rings.splice(j, 1);
+          continue;
+        }
+        var e = 1 - Math.pow(1 - u, 3);             // 先快后慢地扩张
+        var R = 9 + e * 88;
+        var appear = Math.min(1, u / 0.1);           // 刚点下时迅速显形
+        var a = appear * Math.pow(1 - u, 1.7) * 0.85;
+
+        // 中心一团柔光
+        var hd = R * 1.9;
+        ctx.globalAlpha = a * 0.42;
+        ctx.drawImage(sprite(g.c), g.x - hd / 2, g.y - hd / 2, hd, hd);
+
+        // 外圈细环
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(g.x, g.y, R, 0, TAU);
+        ctx.strokeStyle = rgba(g.c, a);
+        ctx.lineWidth = 2.6 - 2.0 * e;
+        ctx.stroke();
+      }
+
+      if (parts.length || rings.length) {
+        raf = requestAnimationFrame(frame);
+      } else {
+        // 都没有了就彻底停下，不空转
+        raf = 0;
+        last = 0;
+        ctx.clearRect(0, 0, W, H);
+      }
+    }
+
+    function kick() {
+      if (!raf) {
+        last = 0;
+        raf = requestAnimationFrame(frame);
+      }
+    }
+
+    window.addEventListener(
+      'pointermove',
+      function (e) {
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        var x = e.clientX, y = e.clientY;
+        var d = hasLast ? Math.hypot(x - px, y - py) : 0;
+        px = x;
+        py = y;
+        hasLast = true;
+        if (d > 160) return;        // 瞬移（切窗口/回窗口）不喷一串
+        spawn(x, y, d);
+        kick();
+      },
+      { passive: true }
+    );
+
+    window.addEventListener(
+      'pointerdown',
+      function (e) {
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        if (e.button !== 0) return;                 // 只响应左键
+        if (!isBlank(e.target)) return;             // 点在链接/卡片/按钮上不放光圈
+        ring(e.clientX, e.clientY);
+        kick();
+      },
+      { passive: true }
+    );
+
+    document.addEventListener('mouseleave', function () {
+      hasLast = false;
+    });
+    window.addEventListener('blur', function () {
+      hasLast = false;
+    });
+
+    // 主题切换时换混合模式（存量粒子保持原色，自然淡出）
+    var themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        requestAnimationFrame(applyComposite);
+      });
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+  })();
+</script>
+
+<style>
+  .cursor-glow {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 45;
+  }
+</style>

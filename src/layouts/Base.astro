@@ -3,6 +3,7 @@ import '../styles/global.css';
 import 'katex/dist/katex.min.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import CursorGlow from '../components/CursorGlow.astro';
 
 const SITE = '大熊印象 · 物理星河';
 
@@ -53,5 +54,6 @@ const base = import.meta.env.BASE_URL;
       <slot />
     </main>
     <Footer />
+    <CursorGlow />
   </body>
 </html>
