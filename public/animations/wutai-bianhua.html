@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>交互动画 · 物态变化微观模型</title>
+<style>
+  /* ===== 主题变量 =====
+     深色写在 :root（默认），浅色整组覆盖在 body.light 上 ——
+     切主题只改 <body> 的一个类名，页面所有颜色（卡片/边框/文字/按钮/提示条）
+     自动跟着换，不需要逐个元素改 style。
+     ★ 这里只管 DOM。canvas 不认 CSS 变量，必须另配一套调色板（见脚本里的 THEMES）。 */
+  :root{
+    --bg1:#0d1526;
+    --bg2:#0a101c;
+    --card:#141d2f;
+    --card2:#0f1726;
+    --line:#263349;
+    --text:#e8eef8;
+    --text2:#96a7c0;
+    --accent:#4d8dff;
+    --accentHov:#3f7ff0;
+    --btn:#1b2740;
+    --btnline:#2c3a55;
+    --track:#2a3752;
+    --bar:#233047;
+    --dash:#d7e3f6;
+    --dd:#b6c5da;
+    --tipbg:#2a2310;
+    --tipline:#4a3d1a;
+    --tipfg:#e8c97a;
+    /* 强调按钮（自动演示 / 暂停演示）：粉红 —— 与蓝色主色拉开距离，用于"点这里"的引导 */
+    --demo:#ec4899;
+    --demoHov:#db2777;
+    --shadow:0 8px 26px rgba(0,0,0,.38);
+    --radius:16px;
+  }
+  /* 浅色：投影 / 打印友好（浅底深字），整组覆盖上面的变量 */
+  body.light{
+    --bg1:#eef2f6;
+    --bg2:#e3eaf1;
+    --card:#ffffff;
+    --card2:#f7fafc;
+    --line:#dde3ea;
+    --text:#202730;
+    --text2:#5b6672;
+    --accent:#185fa5;
+    --accentHov:#0e4f8f;
+    --btn:#ffffff;
+    --btnline:#c9d2dc;
+    --track:#d5dce4;
+    --bar:#e6ebf1;
+    --dash:#1f2733;
+    --dd:#3d4855;
+    --tipbg:#fdf6e6;
+    --tipline:#e6d7a8;
+    --tipfg:#8a6d1f;
+    /* 浅底上换成压深一档的玫粉：白字对比度 4.6:1（亮粉在白色页面上会发飘） */
+    --demo:#db2777;
+    --demoHov:#be185d;
+    --shadow:0 6px 20px rgba(20,32,54,.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 100%);
+    background-attachment:fixed;
+    color:var(--text);
+    /* Times New Roman 放在最前：它无中文字形，浏览器会逐字回退 ——
+       拉丁字母/数字走 Times New Roman，汉字自动回退到苹方/雅黑 */
+    font-family:"Times New Roman",Times,"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:17px;
+    padding:14px 20px 14px;
+  }
+  .wrap{width:100%;max-width:1800px;margin:0 auto;}
+
+  /* ===== 顶部：标题区 + 主题切换按钮 ===== */
+  header.top{
+    display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  header.top .titles{min-width:0;}
+  header.top h1{font-size:30px;margin:0;letter-spacing:1px;font-weight:700;}
+  header.top .sub{margin:6px 0 0;color:var(--text2);font-size:16px;line-height:1.6;}
+  #themeBtn{white-space:nowrap;font-size:15.5px;}
+
+  /* ===== 底部：作者 / 单位 / 版本 =====
+     三项统一常规字重、同一颜色 —— 页脚只承担署名功能，
+     不再给姓名做高亮，视觉焦点留在正文与动画上。 */
+  .foot{
+    margin:16px 0 0;padding-top:10px;border-top:1px solid var(--line);
+    text-align:center;font-size:15px;color:var(--text2);line-height:1.8;
+  }
+  .foot .sep{margin:0 16px;color:var(--line);}
+
+  /* ===== 主体：左（动画 + 温度调节）/ 右（知识讲解） ===== */
+  .cols{
+    display:grid;
+    grid-template-columns:minmax(0,1.15fr) minmax(360px,0.85fr);
+    gap:16px;align-items:stretch;   /* 两列等高：底对齐的关键 */
+  }
+  .col-left{display:flex;flex-direction:column;min-width:0;}
+  .col-right{display:flex;flex-direction:column;min-width:0;}
+  .col-right .info{flex:1;display:flex;flex-direction:column;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .stage{padding:10px 10px 6px;margin-bottom:14px;}
+  canvas{display:block;width:100%;border-radius:12px;}
+  .chips{display:flex;flex-wrap:wrap;gap:9px;margin:8px 2px 4px;}
+  .chip{
+    border:1px solid var(--btnline);background:var(--btn);color:var(--text2);
+    padding:8px 17px;border-radius:999px;font-size:16px;cursor:pointer;
+    transition:.18s;user-select:none;
+  }
+  .chip:hover{border-color:var(--accent);color:var(--text);}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+  .controls{padding:13px 18px 14px;flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .ctrl-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+  .ctrl-head .t1{font-weight:700;font-size:19px;}
+  .ctrl-head .note{color:var(--text2);font-size:15px;}
+  .subsel{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;}
+  .tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+  .btn{
+    border:1px solid var(--btnline);background:var(--btn);color:var(--text);
+    padding:9px 18px;border-radius:10px;font-size:16px;cursor:pointer;transition:.18s;
+  }
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn.primary:hover{background:var(--accentHov);color:#fff;}
+  /* 强调按钮：粉红填充 + 同色柔光，页面上只有「自动演示 / 暂停演示」用它 */
+  .btn.demo{background:var(--demo);border-color:var(--demo);color:#fff;
+            box-shadow:0 3px 13px rgba(219,39,119,.30);}
+  .btn.demo:hover{background:var(--demoHov);border-color:var(--demoHov);color:#fff;}
+  .opt{display:inline-flex;align-items:center;gap:7px;font-size:15.5px;color:var(--text2);cursor:pointer;user-select:none;}
+  input[type=checkbox]{accent-color:var(--accent);width:17px;height:17px;}
+
+  .scalebox{position:relative;height:44px;margin:8px 0 0;}
+  .seg{position:absolute;top:6px;height:22px;display:flex;align-items:center;justify-content:center;
+       font-size:13.5px;color:#fff;overflow:hidden;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.35);}
+  .seg:first-of-type{border-radius:9px 0 0 9px;}
+  .seg:last-of-type{border-radius:0 9px 9px 0;}
+  .mark{position:absolute;top:30px;transform:translateX(-50%);font-size:13.5px;color:var(--text2);white-space:nowrap;}
+  .mark i{display:block;width:1px;height:5px;background:var(--text2);margin:0 auto 1px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:32px;background:transparent;margin:0;}
+  input[type=range]::-webkit-slider-runnable-track{height:7px;border-radius:4px;background:var(--track);}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:#fff;
+    border:3px solid var(--accent);margin-top:-10px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.45);
+  }
+  input[type=range]::-moz-range-track{height:7px;border-radius:4px;background:var(--track);}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--accent);cursor:pointer;}
+
+  .info{padding:18px 22px 20px;}
+  .info-top{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px;}
+  .badge{display:flex;align-items:center;gap:10px;}
+  .badge .dot{width:16px;height:16px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(77,141,255,.18);}
+  .badge b{font-size:28px;letter-spacing:1px;}
+  .badge .hint{font-size:15px;color:var(--text2);}
+  .readout{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+    padding:12px 16px;border-radius:12px;background:var(--card2);border:1px solid var(--line);
+  }
+  .readout div{text-align:center;}
+  .readout label{display:block;font-size:14px;color:var(--text2);margin-bottom:3px;}
+  .readout b{font-size:20px;font-variant-numeric:tabular-nums;}
+  .reftab{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+    font-size:14px;color:var(--text2);text-align:center;
+  }
+  .reftab div{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:8px 14px;}
+  .reftab b{display:block;color:var(--text);font-size:16px;margin-top:1px;}
+
+  .bars{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:16px;}
+  .bar-cell .bar-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+  .bar-cell .n{font-size:15px;color:var(--text2);}
+  .bar-cell .v{font-size:14.5px;color:var(--text2);}
+  .bar{display:block;height:12px;border-radius:6px;background:var(--bar);overflow:hidden;}
+  .bar i{display:block;height:100%;border-radius:6px;transition:width .18s linear;}
+
+  .fields{margin:0;flex:1;display:grid;grid-template-columns:1fr;align-content:space-between;gap:0 26px;}
+  .fields .row{padding:9px 0;border-top:1px dashed var(--line);}
+  .fields dt{font-size:17px;color:var(--dash);font-weight:700;margin-bottom:5px;}
+  .fields dd{margin:0;font-size:17px;line-height:1.7;color:var(--dd);}
+  .tip{
+    margin:14px 0 0;padding:13px 16px;font-size:16px;line-height:1.7;
+    background:var(--tipbg);border:1px solid var(--tipline);color:var(--tipfg);border-radius:10px;
+  }
+
+  @media (max-width:1000px){
+    .cols{grid-template-columns:1fr;}
+  }
+  @media (max-width:860px){
+    .bars{grid-template-columns:1fr;}
+    .info-top{gap:12px;}
+    header.top{align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<!-- 提前应用上次选择的主题：否则选了浅色的用户每次打开都会先闪一下深色底 -->
+<script>try{ if (localStorage.getItem('hm_theme') === 'light') document.body.classList.add('light'); }catch(e){}</script>
+<div class="wrap">
+  <header class="top">
+    <div class="titles">
+      <h1>物态变化的微观模型</h1>
+      <p class="sub">拖动温度滑块观察：固态 → 固液共存 → 液态 → 液气共存 → 气态 → 等离子体</p>
+    </div>
+    <button class="btn" id="themeBtn" type="button">☀ 浅色模式</button>
+  </header>
+
+  <div class="cols">
+    <div class="col-left">
+
+    <section class="card stage">
+      <canvas id="cv"></canvas>
+      <div class="chips" id="chips"></div>
+    </section>
+
+    <section class="card controls">
+      <div class="ctrl-head">
+        <span class="t1">温度调节</span>
+        <span class="note">（为使各物态变化过程便于观察，温度轴采用分段映射：熔点与沸点处为温度平台）</span>
+        <div class="subsel" id="subsel"></div>
+      </div>
+      <div class="scalebox" id="scalebox"></div>
+      <input type="range" id="slider" min="0" max="1000" value="0" step="1">
+      <div class="tools">
+        <button class="btn demo" id="btnAuto">自动演示</button>
+        <button class="btn" id="btnReset">回到最低温度</button>
+      <label class="opt"><input type="checkbox" id="optBond" checked> 显示分子间作用力连线</label>
+      </div>
+    </section>
+
+    </div><!-- /col-left -->
+
+    <div class="col-right">
+    <section class="card info">
+      <div class="info-top">
+        <div class="badge">
+          <span class="dot" id="dot"></span>
+          <b id="stateName">固态</b>
+          <span class="hint" id="stateHint">T ＜ 熔点</span>
+        </div>
+        <div class="readout">
+          <div><label>热力学温度</label><b id="tK">—</b></div>
+          <div><label>摄氏温度</label><b id="tC">—</b></div>
+          <div><label>物质</label><b id="matName">水</b></div>
+        </div>
+        <div class="reftab">
+          <div>熔点<b id="rTm">—</b></div>
+          <div>沸点<b id="rTb">—</b></div>
+          <div>电离温度<b id="rTi">—</b></div>
+        </div>
+      </div>
+
+      <div class="bars">
+        <div class="bar-cell">
+          <div class="bar-head"><span class="n">分子间距</span><span class="v" id="vSpace">很小</span></div>
+          <span class="bar"><i id="bSpace" style="width:8%;background:linear-gradient(90deg,#60a5fa,#3b82f6)"></i></span>
+        </div>
+        <div class="bar-cell">
+          <div class="bar-head"><span class="n">分子间作用力</span><span class="v" id="vForce">很强</span></div>
+          <span class="bar"><i id="bForce" style="width:100%;background:linear-gradient(90deg,#5eead4,#14b8a6)"></i></span>
+        </div>
+        <div class="bar-cell">
+          <div class="bar-head"><span class="n">运动剧烈程度</span><span class="v" id="vMove">微弱</span></div>
+          <span class="bar"><i id="bMove" style="width:10%;background:linear-gradient(90deg,#fbbf24,#f97316)"></i></span>
+        </div>
+      </div>
+
+      <dl class="fields">
+        <div class="row"><dt>分子间距</dt><dd id="fSpace">—</dd></div>
+        <div class="row"><dt>分子间作用力</dt><dd id="fForce">—</dd></div>
+        <div class="row"><dt>分子运动特点</dt><dd id="fMotion">—</dd></div>
+        <div class="row"><dt>宏观特征</dt><dd id="fMacro">—</dd></div>
+        <div class="row"><dt>能量与温度变化</dt><dd id="fEnergy">—</dd></div>
+      </dl>
+
+      <p class="tip" id="tip"></p>
+    </section>
+    </div><!-- /col-right -->
+  </div><!-- /cols -->
+
+  <!-- 底部署名行：由 AUTHOR_CFG 渲染（课堂版整行隐藏，文件里不存在任何署名字样） -->
+  <footer class="foot" id="foot"></footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================== 署名配置 ==================
+   这一段由「_模板与生成 / 生成署名版本.js」按不同版本改写：
+     mode:'pen'  → 显示作者，不显示单位（全网分享用）
+     mode:'real' → 显示作者 + 单位（学校分享 / 参赛用）
+     mode:'none' → 不显示任何署名（课堂投影 / 录课用）
+   ★ 公开版文件里不会残留单位字样（真名是老师自己决定对外展示的，单位则不可）——
+     切勿把 org 写死在页面的其他地方，否则署名配置就形同虚设（右键查看源码即可见）。
+   ============================================ */
+/* =====AUTHOR_CFG_BEGIN===== */
+var AUTHOR_CFG = {
+  mode    : 'pen',
+  author  : '熊和平（大熊印象）',
+  org     : '',
+  version : 'V1.1'
+};
+/* =====AUTHOR_CFG_END===== */
+
+/* 按配置渲染底部「作者 / 单位 / 版本」一行（三项同字重同颜色，用 · 分隔） */
+(function initAuthor(){
+  var foot = document.getElementById('foot');
+  if (!foot) return;
+
+  var m = AUTHOR_CFG.mode;
+  if (m === 'none'){ foot.style.display = 'none'; return; }   // 课堂版：不显示任何署名
+
+  var parts = [];
+  parts.push('作者：' + AUTHOR_CFG.author);
+  if (m === 'real' && AUTHOR_CFG.org) parts.push('单位：' + AUTHOR_CFG.org);
+  if (AUTHOR_CFG.version) parts.push('版本：' + AUTHOR_CFG.version);
+  foot.innerHTML = parts.join('<span class="sep">·</span>');
+})();
+
+/* ================== 深浅主题（CSS 变量 + Canvas 调色板 双轨） ==================
+   · DOM 侧：靠 :root / body.light 两套 CSS 变量，切主题只需切换 <body> 的类名；
+   · Canvas 侧：画布不认 CSS 变量，必须自带一套调色板。THEMES 里两个主题的键完全一致，
+     所有绘制函数只准引用 PAL.xxx —— 不要再往绘制代码里写颜色字面量，
+     否则切到浅色时会有漏网的浅色/深色元件（例如画布内文字仍是浅灰，在白底上看不见）。
+   · 用户选择写入 localStorage；无痕模式 / 本地文件下可能被禁用，故包 try/catch。
+     键名与「匀变速直线运动」课件保持一致，同一台电脑上两件课件的深浅偏好同步。
+   ============================================================================ */
+var THEMES = {
+  dark: {
+    /* 容器背景渐变：冷端 / 热端 / 电离端（按温度与电离进度插值） */
+    bgA:'#182640',  bgB:'#101a30',
+    hotA:'#2c2136', hotB:'#241a26',
+    ionA:'#1d1033', ionB:'#150a26',
+    /* 容器描边 / 分子描边 / 分子高光 */
+    edge:'rgba(150,168,200,.45)',
+    molEdge:'rgba(0,0,0,.30)',
+    molHi:'rgba(255,255,255,.50)',
+    /* 分子本体：固 / 液（含未熔晶块）/ 气 / 离子 */
+    mSolid:'#5b9bff', mLiq:'#2dd4bf', mGas:'#fbbf24', mIon:'#fb923c',
+    ionGlow0:'rgba(251,146,60,.45)', ionGlow1:'rgba(251,146,60,0)',
+    ionRing:'rgba(255,225,150,.85)',
+    /* 自由电子：亮点 + 光晕 */
+    elCore:'#fff9d0', elGlow0:'rgba(255,252,205,.95)', elGlow1:'rgba(255,240,120,0)',
+    /* 近邻作用线（分子间作用力）：晶格键 / 液体内聚 */
+    bSolid:'rgba(91,155,255,', bLiq:'rgba(45,212,191,',
+    /* 画布内文字底板：2026-09-26 按用户要求去掉底纹，以下两项已停用（保留便于随时恢复） */
+    /* panelBg:'rgba(8,13,24,.55)', noteBg:'rgba(8,13,24,.50)', */
+    fg:'rgba(235,242,252,.94)', fg2:'rgba(178,194,218,.78)'
+  },
+  light: {
+    /* 浅色画布：底色比页面卡片略深一点点，容器边界才看得出来 */
+    bgA:'#e9f1fb',  bgB:'#dce7f5',
+    hotA:'#fdf1e4', hotB:'#fbe5d1',
+    ionA:'#f3edfd', ionB:'#eae0fb',
+    edge:'rgba(96,116,146,.55)',
+    molEdge:'rgba(15,25,45,.22)',
+    molHi:'rgba(255,255,255,.72)',
+    /* 浅底上的分子色整体压深一档，否则黄色/青色小球在浅色上发飘看不清 */
+    mSolid:'#2f6fd0', mLiq:'#0d9488', mGas:'#d99a0c', mIon:'#ea6a1f',
+    ionGlow0:'rgba(234,106,31,.32)', ionGlow1:'rgba(234,106,31,0)',
+    ionRing:'rgba(180,83,9,.70)',
+    elCore:'#b45309', elGlow0:'rgba(217,119,6,.40)', elGlow1:'rgba(217,119,6,0)',
+    bSolid:'rgba(47,111,208,', bLiq:'rgba(13,148,136,',
+    /* 画布内文字底板：已停用，见深色调色板同处说明 */
+    /* panelBg:'rgba(255,255,255,.82)', noteBg:'rgba(255,255,255,.80)', */
+    fg:'#1c2430', fg2:'#5b6672'
+  }
+};
+var PAL = THEMES.dark;
+
+function isLight(){ return document.body.classList.contains('light'); }
+
+/* 状态色在浅色底上要压深一档：#fbbf24（黄）写在白底上几乎看不见。
+   仅用于 DOM 文字/圆点与画布内那根状态色短线，不改画布底色。 */
+var PHASE_LIGHT = {
+  solid:'#2563c9',  melting:'#17789a', liquid:'#0f8a78',
+  boiling:'#b45309', gas:'#a16207',   ionizing:'#b83a72', plasma:'#7c3aed'
+};
+function phaseColor(key){
+  key = key || stateKey;
+  return (isLight() && PHASE_LIGHT[key]) ? PHASE_LIGHT[key] : PHASES[key].color;
+}
+
+function setTheme(th){
+  PAL = THEMES[th] || THEMES.dark;
+  document.body.classList.toggle('light', th === 'light');
+  var b = document.getElementById('themeBtn');
+  if (b) b.textContent = (th === 'light') ? '🌙 深色模式' : '☀ 浅色模式';
+  try { localStorage.setItem('hm_theme', th); } catch(err){}
+  /* 状态名/圆点的颜色由 JS 写内联样式，切主题后要主动刷一次，
+     否则要等用户再拖一下滑块才会变（画布每帧重绘，不受影响）。 */
+  if (typeof updatePanel === 'function' && document.getElementById('stateName')) updatePanel();
+}
+
+/* ============ 物质参数 ============ */
+var SUBSTANCES = [
+  { key:'water',    name:'水 H₂O',  unit:'分子', Tm:273.15, Tb:373.15, Tion:4000,  Tmax:5200  },
+  { key:'iron',     name:'铁 Fe',   unit:'原子', Tm:1811,   Tb:3134,   Tion:8000,  Tmax:10500 },
+  { key:'nitrogen', name:'氮 N₂',   unit:'分子', Tm:63.15,  Tb:77.36,  Tion:5000,  Tmax:6500  }
+];
+
+/* ============ 各物态解说（{P} 替换为“分子/原子”） ============ */
+var PHASES = {
+  solid:{
+    name:'固态', hint:'T ＜ 熔点', color:'#5b9bff',
+    space:8, force:100, sv:'极小', fv:'很强',
+    fSpace:'微粒排列紧密、规则，间距很小，约为微粒直径量级（约 10⁻¹⁰ m），彼此几乎“紧靠”。',
+    fForce:'分子间作用力很强（引力与斥力都很大），足以把微粒牢牢束缚在确定的平衡位置附近。',
+    fMotion:'微粒在各自的平衡位置附近做微小、快速的往复振动，有确定的平衡位置，不能自由移动；温度升高，振动振幅增大（热膨胀的微观原因）。',
+    fMacro:'有一定的体积和一定的形状，不易被压缩，不能流动。',
+    fEnergy:'吸收热量 → 温度升高 → 分子平均动能增大、振动加剧。',
+    tip:'晶体中的微粒被“锁”在晶格位置上：加热时只是振动越来越剧烈，位置并不改变。'
+  },
+  melting:{
+    name:'固液共存（熔化中）', hint:'T ＝ 熔点', color:'#38a3c4',
+    space:18, force:80, sv:'略增', fv:'较强',
+    fSpace:'已熔化部分的排列变得散乱，间距略微增大；未熔化部分仍保持规则排列。',
+    fForce:'一部分微粒间的作用力已被热运动破坏，不再被固定在平衡位置；未熔化部分的作用力仍很强。',
+    fMotion:'一部分微粒挣脱晶格束缚，开始在更大范围内移动、互相换位，并沿重力方向塌落、向两侧铺开——这就是流动性的由来；其余微粒仍在平衡位置附近振动。此时吸收的热量全部用于破坏晶体结构，分子平均动能不变。',
+    fMacro:'固态逐渐减少、液态逐渐增多（固液共存）；有确定的熔点。已熔化的部分不再保持原有形状，开始流动。',
+    fEnergy:'继续吸热但温度保持不变（熔点），热量用于破坏晶体结构 → 内能增大、分子势能增大。',
+    tip:'看画面：完整晶块先是“松散”、表层微粒脱离并塌落铺开，而剩余晶块仍保持棱角——这就是固液共存。'
+  },
+  liquid:{
+    name:'液态', hint:'熔点 ＜ T ＜ 沸点', color:'#2dd4bf',
+    space:26, force:62, sv:'较小', fv:'较大',
+    fSpace:'比固态略大（约 1.1 倍），仍与微粒直径同数量级、远小于气体，因此液体仍难被压缩。',
+    fForce:'分子间作用力较大，足以维持一定的体积，但不足以维持固定的形状。',
+    fMotion:'微粒没有确定的平衡位置，一面振动一面不断“换位置”，可在液体内部明显地迁移、相互换位（流动性的微观原因）。',
+    fMacro:'有一定的体积，没有固定的形状，具有流动性，能形成自由液面，会随容器形状改变形状；不易压缩。',
+    fEnergy:'吸热 → 温度升高 → 分子平均动能增大、运动加剧（伴随蒸发加快）。',
+    tip:'与固态相比：小球变为青绿色，位置不再固定，能在整个液层里来回迁移，液面也铺成水平——这就是流动性。'
+  },
+  boiling:{
+    name:'液气共存（剧烈汽化中）', hint:'T ＝ 沸点', color:'#f59e0b',
+    space:52, force:30, sv:'迅速增大', fv:'急剧减小',
+    fSpace:'脱离液面的微粒（橙色小球）间距急剧增大，可达原来的约十倍（约 10⁻⁹ m 量级）。',
+    fForce:'分子间作用力随间距增大而急剧减小，脱离液面后变得十分微弱（除碰撞瞬间外常可忽略）。',
+    fMotion:'动能较大的微粒克服其他分子的吸引而逸出液面，在整个容器内做高速无规则运动；同时也有微粒被拉回液体（动态平衡）。',
+    fMacro:'液态逐渐减少、气态逐渐增多；沸腾时液体内部也形成大量气泡，气泡上升到液面破裂。',
+    fEnergy:'继续吸热但温度保持不变（沸点），热量用于增大分子间距、克服分子间作用力做功 → 分子势能增大。',
+    tip:'从这一阶段起再看颜色：青绿色＝仍在液体中的分子，橙色＝已汽化、充满容器的分子。注意同温度下两者平均动能相同。'
+  },
+  gas:{
+    name:'气态', hint:'沸点 ＜ T ＜ 电离温度', color:'#fbbf24',
+    space:88, force:10, sv:'很大', fv:'极小',
+    fSpace:'分子间距很大，约为分子直径的十倍以上（气体体积主要是“空隙”），故气体极易被压缩。',
+    fForce:'分子间作用力极小，除碰撞瞬间外可以忽略不计（理想气体模型即忽略分子间作用力）。',
+    fMotion:'分子以高速做无规则运动，直至充满整个容器；频繁碰撞器壁与彼此，碰撞改变各自的运动方向。',
+    fMacro:'没有固定的体积，也没有固定的形状，易压缩、密度小、扩散快；大量分子对器壁的碰撞形成压强。',
+    fEnergy:'吸热 → 温度升高 → 分子平均动能增大、运动更剧烈 → 在体积不变时压强增大。',
+    tip:'温度是分子平均动能的标志：气体温度升高时，分子的平均速率增大（并非每个分子都变快）。'
+  },
+  ionizing:{
+    name:'部分电离（等离子体形成中）', hint:'温度接近电离温度', color:'#f472b6',
+    space:94, force:26, sv:'很大', fv:'电磁作用显著',
+    fSpace:'与气态相近或更大；原子尺度上，外层电子与原子核的距离被彻底拉开。',
+    fForce:'由分子间的短程作用转变为带电粒子之间的库仑作用（长程电磁力），可以远距离相互影响。',
+    fMotion:'剧烈碰撞使一部分原子（分子）电离：电子脱离原子核的束缚成为自由电子，形成正离子与自由电子共存的高速无规则运动体系。',
+    fMacro:'导电性急剧增强，开始出现发光现象；处于从气态向等离子体转变的过渡阶段。',
+    fEnergy:'继续获得能量 → 用于剥离电子（电离）而非单纯升温 → 体系转变为等离子体。',
+    tip:'电离需要的能量远大于汽化热，所以等离子体出现在极高温度下（火焰、闪电、极光、霓虹灯、恒星）。'
+  },
+  plasma:{
+    name:'等离子体态', hint:'T ＞ 电离温度', color:'#c084fc',
+    space:100, force:34, sv:'很大', fv:'库仑力（长程）',
+    fSpace:'正离子与自由电子混杂分布，间距与气体相当甚至更大，整体近似保持电中性。',
+    fForce:'带电粒子间存在长程的库仑相互作用，可被电场加速、被磁场约束（区别于普通气体的关键）。',
+    fMotion:'正离子与自由电子各自做高速无规则运动，碰撞频繁，碰撞时发生复合并辐射出光子 → 发光。',
+    fMacro:'没有固定的体积和形状，能被磁场约束，具有良好的导电性和发光特性；被称为物质的第四态。',
+    fEnergy:'维持该状态需要持续的能量输入（高温、强电场等）；撤去能量供应后会复合为普通气体。',
+    tip:'等离子体是宇宙中最常见的物质形态（恒星几乎全由等离子体构成）。日常所见：闪电、电弧、霓虹灯、极光。'
+  }
+};
+
+/* ============ 画布与几何 ============ */
+var cv = document.getElementById('cv');
+var ctx = cv.getContext('2d');
+var W = 800, H = 520, DPR = 1;
+var box = {x:0,y:0,w:0,h:0};
+var PAD_X = 26, PAD_Y = 20;
+var spacing = 26, molR = 8;
+var COLS = 12, ROWS = 10;
+var particles = [], bonds = [], electrons = [], ionOrder = [];
+var N_PART = 120;                 // 12 列 × 10 行
+
+/* ============ 微观力学参数（单位：px、s） ============ */
+var KS    = 190;    // 晶格弹性系数（1/s²）
+var RATE_S= 9.0;    // 固态阻尼率：把微粒“锁”在平衡位置附近
+var RATE_L= 3.0;    // 液态阻尼率：可迁移
+var RATE_G= 0.45;   // 气态阻尼率：几乎无摩擦，自由飞行
+var GRAV  = 430;    // 重力加速度（px/s²）
+var REP   = 1400;   // 软球排斥（px/s² 每 px 重叠）
+var COH   = 300;    // 液体内聚（px/s²）
+
+/* ============ 状态量 ============ */
+var sub = SUBSTANCES[0];
+var anchors = [], mw = 8, bw = 12, iw = 500;
+var sliderVal = 0;
+var T = 0, sm = 0, sv = 0, si = 0, stateKey = 'solid';
+var ABSORB_PENDING = false;      // 状态变了 → 待重校画布高度（见 reAbsorb）
+var baseK = 7.2;
+/* 演示状态：一个变量说清三件事。
+   （原来是 autoPlaying + paused 两个布尔量，结果"暂停"只冻住了粒子、
+    没冻住温度推进 —— 用户 2026-09-26 报的就是这个 bug。）
+     'idle' 手动：粒子照常运动，温度由滑杆决定，不自动推进
+     'run'  自动演示：温度自动推进 + 粒子运动
+     'hold' 暂停演示：温度、粒子、各项读数全部冻住，再点按钮从原处继续 */
+var DEMO = 'idle';
+var optBond = true;
+
+/* ============ 工具函数 ============ */
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function clamp01(v){ return v<0?0:(v>1?1:v); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function rnd(a,b){ return a+Math.random()*(b-a); }
+function gauss(){ return (Math.random()+Math.random()+Math.random()-1.5)*1.33; }
+/* 颜色插值。
+   ★ 曾经只认 '#rrggbb'，而 bgColors() 把上一步的混合结果（'rgb(r,g,b)'）又喂回来，
+     于是第二次混合的解析结果是 NaN → 通道全 0 → 容器底色一直是纯黑（深色下看不出来，
+     浅色下会直接黑掉一整块）。这里统一先解析成 [r,g,b]，两种写法都能吃。 */
+function toRGB(c){
+  c = String(c).trim();
+  if (c.charAt(0) === '#'){
+    var v = parseInt(c.slice(1), 16);
+    return [(v>>16)&255, (v>>8)&255, v&255];
+  }
+  var m = /^rgba?\(([^)]+)\)/.exec(c);
+  if (m){
+    var p = m[1].split(',');
+    return [parseFloat(p[0])||0, parseFloat(p[1])||0, parseFloat(p[2])||0];
+  }
+  return [0,0,0];
+}
+function mixHex(c1,c2,t){
+  var a = toRGB(c1), b = toRGB(c2);
+  return 'rgb(' + Math.round(lerp(a[0],b[0],t)) + ',' +
+                  Math.round(lerp(a[1],b[1],t)) + ',' +
+                  Math.round(lerp(a[2],b[2],t)) + ')';
+}
+
+/* ============ 温度分段映射（含熔点、沸点两个温度平台） ============ */
+function buildScale(){
+  mw = Math.max(3.5, sub.Tm*0.05);
+  bw = Math.max(5,   sub.Tb*0.05);
+  iw = Math.max(300, sub.Tion*0.12);
+  var a = [
+    Math.max(1, sub.Tm-8*mw),   // 温标起点：远低于熔点的固态（避免 0 K 这种课堂上不真实的低温）
+    Math.max(1, sub.Tm-3*mw),
+    sub.Tm, sub.Tm,          // 第 2 段：熔点平台（熔化）
+    sub.Tb, sub.Tb,          // 第 4 段：沸点平台（沸腾）
+    sub.Tb+4*bw,
+    sub.Tion-iw,
+    sub.Tion+iw*0.35,
+    sub.Tmax
+  ];
+  for (var i=1;i<a.length;i++){ if (a[i] < a[i-1]) a[i] = a[i-1]; }
+  anchors = a;
+  baseK = 140/Math.sqrt(sub.Tb);
+}
+function fOf(s){ return clamp01(s)*(anchors.length-1); }
+function sOf(f){ return clamp01(f/(anchors.length-1)); }
+function TatF(f){
+  f = clamp(f, 0, anchors.length-1);
+  var i = Math.min(anchors.length-2, Math.floor(f));
+  return lerp(anchors[i], anchors[i+1], f-i);
+}
+
+/* ============ 布局：容器 + 居中的紧凑晶块 ============ */
+function layout(){
+  box.x = 12; box.y = 12;                      // 容器尽量铺满画布，只留极窄边
+  box.w = W - 24;
+  box.h = H - 24;
+  var innerW = box.w - 2*PAD_X;
+  var innerH = box.h - 2*PAD_Y;
+  var blockW = innerW*0.47;                    // 固体晶块约占容器宽度的 47%
+  COLS = 12;
+  ROWS = Math.ceil(N_PART/COLS);
+  spacing = clamp(blockW/(COLS-1+0.5), 11, 60);
+  var maxH = innerH*0.68;
+  if (ROWS*spacing*0.866 > maxH) spacing = maxH/(ROWS*0.866);
+  molR = clamp(spacing*0.33, 3.2, 18);
+}
+
+function buildParticles(){
+  var innerW = box.w - 2*PAD_X;
+  var usedW = (COLS-1)*spacing + spacing*0.5;
+  var left = box.x + PAD_X + Math.max(0,(innerW-usedW)/2);
+  var bottom = box.y + box.h - PAD_Y - molR;
+  var rowH = spacing*0.866;
+  particles = []; bonds = [];
+  for (var r=0;r<ROWS;r++){
+    for (var c=0;c<COLS;c++){
+      var idx = particles.length;
+      if (idx >= N_PART) break;
+      var x = left + c*spacing + (r%2)*spacing*0.5;
+      var y = bottom - r*rowH;
+      particles.push({
+        hx:x, hy:y, x:x, y:y, vx:0, vy:0,
+        col:c, row:r,
+        melt: 0.06 + 0.86*(1 - r/Math.max(1,ROWS-1)) + rnd(0,0.05),
+        sol: 1, gas: false, ion: false
+      });
+      if (c < COLS-1) bonds.push([idx, idx+1]);
+      if (r < ROWS-1) bonds.push([idx, idx+COLS]);
+    }
+  }
+  N_PART = particles.length;
+  ionOrder = [];
+  for (var q=0;q<N_PART;q++) ionOrder.push(q);
+  for (var m=ionOrder.length-1;m>0;m--){
+    var k = Math.floor(Math.random()*(m+1));
+    var tmp = ionOrder[m]; ionOrder[m]=ionOrder[k]; ionOrder[k]=tmp;
+  }
+  electrons = [];
+}
+
+/* 只重算晶格的目标位置（hx/hy）与几何，不动粒子的 x/y/v。
+   画布尺寸变化时用它代替 buildParticles()，粒子就不会被"瞬移"回晶格起点：
+   固体晶块平滑挪到新位置，液体/气体的分子只是在变大的盒子里继续飞。 */
+function relayoutLattice(){
+  var innerW = box.w - 2*PAD_X;
+  var usedW = (COLS-1)*spacing + spacing*0.5;
+  var left = box.x + PAD_X + Math.max(0,(innerW-usedW)/2);
+  var bottom = box.y + box.h - PAD_Y - molR;
+  var rowH = spacing*0.866;
+  for (var i=0;i<particles.length;i++){
+    var p = particles[i];
+    p.hx = left + p.col*spacing + (p.row%2)*spacing*0.5;
+    p.hy = bottom - p.row*rowH;
+  }
+}
+
+/* 把画布尺寸落实到 DOM 与内部状态（layout 依赖 W/H，所以必须一起做）
+   keep=true：保留当前画面（动画进行中微调高度时用），否则整场重建 */
+function applySize(cssW, cssH, keep){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  cv.style.height = cssH + 'px';
+  cv.width = Math.round(cssW*DPR);
+  cv.height = Math.round(cssH*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  W = cssW; H = cssH;
+  layout();
+  if (keep && particles.length) relayoutLattice();
+  else buildParticles();
+}
+
+/* 「一屏放下」的兜底 —— 预算高度只是估算，实测再修一次：
+   页面总高不只由画布决定，右栏知识讲解的文字高度、控制区的自然高度都会把行高撑起来，
+   于是窄屏/矮屏（如 1600×900）下整页仍会高出视口，底部署名行被挤出可视区。
+   这里量一次实际总高，把超出的部分从画布高度里扣掉；
+   若扣了也没用（行高由右栏文字决定），就还原成原高度，免得白缩动画区。
+   配图版（__REC.fixed）走固定尺寸，不走这条路径。 */
+function fitViewport(cssW, cssH){
+  if (window.__REC && window.__REC.fixed) return;
+  var vh = window.innerHeight || 0;
+  if (!vh || !document.documentElement) return;
+  var over = document.documentElement.scrollHeight - vh;
+  if (over <= 2) return;
+  var next = Math.max(340, cssH - over - 4);
+  if (next >= cssH) return;
+  applySize(cssW, next);
+  if (document.documentElement.scrollHeight > vh + 2) applySize(cssW, cssH);
+}
+
+function resize(){
+  var cssW = Math.max(340, cv.clientWidth || 760);
+  /* 画布高度自适应视口：先按"视口 − 页面固定占用 − 底部署名行"给一个预算，
+     剩余全部给动画 —— 16:9 全屏时不出现纵向滚动条 */
+  var vh = (window.innerHeight && window.innerHeight > 300) ? window.innerHeight : 940;
+  /* 底部署名行的实际高度随版本变化（课堂版整行隐藏），实测后再扣，
+     否则课堂版会白留一条空隙、署名版又会顶出一根纵向滚动条。 */
+  var footH = 0;
+  var fEl = document.getElementById('foot');
+  if (fEl && fEl.offsetParent !== null) footH = fEl.offsetHeight + 18;
+  var capH = Math.max(340, vh - 460 - footH);
+  var cssH = Math.round(clamp(Math.min(cssW*0.72, capH), 340, 520));
+  applySize(cssW, cssH);
+  cssH = absorbSlack(cssW, cssH);   // 左栏用不满的那部分行高，转给画布
+  fitViewport(cssW, cssH);
+}
+
+/* 「余量归画布」—— 行高由右栏知识讲解的文字决定，左栏一般用不满：
+   多出来的高度原本被 .controls{flex:1} 吃掉、又被 justify-content:center 上下平分，
+   于是在「温度调节」卡片里露出上下两块等高的空白，而画布却一直卡在上限、长不大。
+   做法：把控制卡临时解除 flex，量出它的自然高度，差值全部加给画布。
+   这么做不会让整页变高 —— 行高本来就是右栏撑住的，画布只是把空出来的位置占满
+   （1920×1080 / 1600×900 / 1536×864 等尺寸实测：页面总高逐像素不变）。
+   ★ 为什么还需要 reAbsorb：右栏那段讲解文字会随状态变长变短（固液共存最长），
+     行高跟着变，余量会再冒出来 —— 所以换状态时要重校一次。
+     那一次必须用 applySize(..., true)：只挪晶格目标、不重建粒子，动画才不会跳。
+   配图版走固定尺寸（__REC.fixed），两个入口都直接跳过。 */
+
+/* 量控制卡里被上下平分的余量（= 左栏用不满的那部分行高） */
+function measureSlack(){
+  var ctrl = document.querySelector('.controls');
+  if (!ctrl) return 0;
+  var stretched = ctrl.offsetHeight;
+  var pFlex = ctrl.style.flex, pJc = ctrl.style.justifyContent;
+  ctrl.style.flex = '0 0 auto';
+  ctrl.style.justifyContent = 'flex-start';
+  var natural = ctrl.offsetHeight;   // 读一次 offsetHeight 即强制重排，量到的是真实自然高
+  ctrl.style.flex = pFlex;
+  ctrl.style.justifyContent = pJc;
+  return stretched - natural;
+}
+
+/* 吸收余量时画布能长到多高：宽高比 0.85 + 硬顶 640（比初始预算的 0.72 宽松，
+   因为这里的目的就是把动画区顶高）。它只是"能吸多少"的上限，永远吸不到
+   "两栏等高"以外 —— 到那儿余量为 0，所以再怎么放宽也不会把整页顶高。 */
+function canvasCap(cssW, cssH){
+  return Math.min(640, Math.max(cssH, cssW*0.85));
+}
+
+/* 初始化 / 窗口尺寸变化：可以重建粒子 */
+function absorbSlack(cssW, cssH){
+  if (window.__REC && window.__REC.fixed) return cssH;
+  var slack = measureSlack();
+  if (slack <= 2) return cssH;       // 没有余量（或量到异常值）就不动
+  var next = Math.round(Math.min(cssH + slack, canvasCap(cssW, cssH)));
+  if (next <= cssH) return cssH;
+  applySize(cssW, next);
+  return next;
+}
+
+/* 状态变化：保留当前画面（keep=true），只把多出来的高度给画布 */
+function reAbsorb(){
+  if (window.__REC && window.__REC.fixed) return;
+  if (!W || !particles.length) return;
+  var slack = measureSlack();
+  if (slack <= 2) return;
+  var next = Math.round(Math.min(H + slack, canvasCap(W, H)));
+  if (next <= H) return;
+  applySize(W, next, true);
+}
+
+/* ============ 状态分配 ============ */
+function computeState(){
+  var key0 = stateKey;
+  var f = fOf(sliderVal);
+  T = TatF(f);
+  sm = clamp01(f-2);      // 熔点平台：熔化进度
+  sv = clamp01(f-4);      // 沸点平台：汽化进度
+  si = clamp01(f-7);      // 电离进度
+  if (sm < 0.02) stateKey = 'solid';
+  else if (sm < 0.98) stateKey = 'melting';
+  else if (sv < 0.02) stateKey = 'liquid';
+  else if (sv < 0.98) stateKey = 'boiling';
+  else if (si < 0.02) stateKey = 'gas';
+  else if (si < 0.98) stateKey = 'ionizing';
+  else stateKey = 'plasma';
+  /* 换了状态 → 右栏讲解文字长短变了 → 行高变了 → 画布余量要重校一次。
+     只挂个标记，真正的重校放在 updatePanel 末尾（那时新文字已写进 DOM，量得准）。 */
+  if (stateKey !== key0) ABSORB_PENDING = true;
+}
+
+function reassign(){
+  var i, p;
+  for (i=0;i<N_PART;i++){
+    p = particles[i];
+    p.sol = clamp01((p.melt - sm)*3.2);
+  }
+  var nGas = Math.round(N_PART*sv);
+  var order = particles.slice().sort(function(a,b){ return a.y-b.y; });
+  for (i=0;i<N_PART;i++) order[i].gas = (i < nGas);
+  var nIon = Math.round(N_PART*si);
+  for (i=0;i<N_PART;i++) particles[i].ion = false;
+  for (i=0;i<nIon;i++) particles[ionOrder[i]].ion = true;
+}
+
+/* ============ 微观力学：单步积分 ============ */
+function stepPhysics(dt){
+  var i, p;
+  var vT = baseK*Math.sqrt(Math.max(T,1));
+  var vSolid = Math.min(vT*0.50, 320);
+  var vLiq   = Math.min(vT*0.55, 320);
+  var vGas   = Math.min(vT, 470);
+  var solidList = [], liqList = [], gasList = [];
+
+  for (i=0;i<N_PART;i++){
+    p = particles[i];
+    if (p.sol > 0.002){
+      var kk = KS*p.sol;
+      p.vx += (p.hx - p.x)*kk*dt;
+      p.vy += (p.hy - p.y)*kk*dt;
+    }
+    if (!p.gas) p.vy += GRAV*dt;
+    var tgt, rate;
+    if (p.gas){ tgt = vGas;   rate = RATE_G; gasList.push(p); }
+    else if (p.sol > 0.002){ tgt = vSolid; rate = RATE_S*p.sol + 1.0; solidList.push(p); }
+    else { tgt = vLiq; rate = RATE_L; liqList.push(p); }
+    var av = tgt*Math.sqrt(2*rate*dt);
+    p.vx += gauss()*av;
+    p.vy += gauss()*av;
+    var f = Math.exp(-rate*dt);
+    p.vx *= f; p.vy *= f;
+  }
+
+  var minD = spacing*1.05, minD2 = minD*minD;
+  var dattr = spacing*2.0, dattr2 = dattr*dattr;
+  for (i=0;i<N_PART;i++){
+    var pi = particles[i];
+    for (var j=i+1;j<N_PART;j++){
+      var pj = particles[j];
+      var dx = pj.x-pi.x, dy = pj.y-pi.y;
+      var d2 = dx*dx+dy*dy;
+      if (d2 > dattr2) continue;
+      var d = Math.sqrt(d2); if (d < 1e-4) d = 1e-4;
+      var nx = dx/d, ny = dy/d;
+      if (d < minD){
+        var a = REP*(minD-d)*dt;
+        pi.vx -= nx*a; pi.vy -= ny*a;
+        pj.vx += nx*a; pj.vy += ny*a;
+      } else if (!pi.gas && !pj.gas && pi.sol < 0.05 && pj.sol < 0.05){
+        var f2 = COH*(1-(d-minD)/(dattr-minD))*dt;
+        pi.vx += nx*f2; pi.vy += ny*f2;
+        pj.vx -= nx*f2; pj.vy -= ny*f2;
+      }
+    }
+  }
+
+  thermostat(solidList, vSolid, false);
+  thermostat(liqList,   vLiq,   true);
+  thermostat(gasList,   vGas,   true);
+
+  var mx0 = box.x+molR+4, mx1 = box.x+box.w-molR-4;
+  var my0 = box.y+molR+4, my1 = box.y+box.h-molR-4;
+  for (i=0;i<N_PART;i++){
+    p = particles[i];
+    var sp = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+    if (sp > 700){ p.vx = p.vx/sp*700; p.vy = p.vy/sp*700; }
+    p.x += p.vx*dt; p.y += p.vy*dt;
+    if (p.x < mx0){ p.x = mx0; p.vx = Math.abs(p.vx)*0.6; }
+    if (p.x > mx1){ p.x = mx1; p.vx = -Math.abs(p.vx)*0.6; }
+    if (p.y < my0){ p.y = my0; p.vy = Math.abs(p.vy)*0.6; }
+    if (p.y > my1){ p.y = my1; p.vy = -Math.abs(p.vy)*0.6; }
+  }
+}
+
+function thermostat(list, target, detrend){
+  var n = list.length, i;
+  if (!n) return;
+  var mx = 0, my = 0;
+  if (detrend){
+    for (i=0;i<n;i++){ mx += list[i].vx; my += list[i].vy; }
+    mx /= n; my /= n;
+  }
+  var sq = 0;
+  for (i=0;i<n;i++){
+    var ax = list[i].vx-mx, ay = list[i].vy-my;
+    sq += ax*ax + ay*ay;
+  }
+  var cur = Math.sqrt(sq/n);
+  if (cur < 1e-4) return;
+  var f = clamp(target/cur, 0.96, 1.04);
+  for (i=0;i<n;i++){
+    list[i].vx = mx + (list[i].vx-mx)*f;
+    list[i].vy = my + (list[i].vy-my)*f;
+  }
+}
+
+function updateElectrons(dt){
+  var want = Math.round(N_PART*2*si);
+  while (electrons.length < want){
+    electrons.push({
+      x: rnd(box.x+PAD_X, box.x+box.w-PAD_X),
+      y: rnd(box.y+PAD_Y, box.y+box.h-PAD_Y),
+      vx: gauss()*260, vy: gauss()*260, ph: rnd(0,6.28)
+    });
+  }
+  while (electrons.length > want) electrons.pop();
+  var mx0 = box.x+PAD_X*0.5, mx1 = box.x+box.w-PAD_X*0.5;
+  var my0 = box.y+PAD_Y*0.6, my1 = box.y+box.h-PAD_Y*0.6;
+  for (var i=0;i<electrons.length;i++){
+    var e = electrons[i];
+    e.vx += gauss()*90; e.vy += gauss()*90;
+    var s = Math.sqrt(e.vx*e.vx+e.vy*e.vy);
+    if (s > 430){ e.vx = e.vx/s*430; e.vy = e.vy/s*430; }
+    e.x += e.vx*dt; e.y += e.vy*dt;
+    if (e.x < mx0){ e.x = mx0; e.vx = Math.abs(e.vx); }
+    if (e.x > mx1){ e.x = mx1; e.vx = -Math.abs(e.vx); }
+    if (e.y < my0){ e.y = my0; e.vy = Math.abs(e.vy); }
+    if (e.y > my1){ e.y = my1; e.vy = -Math.abs(e.vy); }
+    e.ph += dt*8;
+  }
+}
+
+/* 画布文字不继承 CSS 字体栈，需单独指定：英文用 Times New Roman，中文回退苹方/雅黑 */
+var FONT = '"Times New Roman",Times,"PingFang SC","Microsoft YaHei",sans-serif';
+
+/* ============ 绘制 ============ */
+function bgColors(){
+  var heat = clamp01(T/(sub.Tmax*0.92));
+  var top = mixHex(PAL.bgA, PAL.hotA, heat);
+  var bot = mixHex(PAL.bgB, PAL.hotB, heat);
+  var darkness = clamp01(si*1.15);
+  return { top: mixHex(top, PAL.ionA, darkness),
+           bot: mixHex(bot, PAL.ionB, darkness), dark: 1 };
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function drawVessel(bg){
+  ctx.save();
+  var gr = ctx.createLinearGradient(0, box.y, 0, box.y+box.h);
+  gr.addColorStop(0, bg.top); gr.addColorStop(1, bg.bot);
+  ctx.beginPath();
+  roundRect(box.x, box.y, box.w, box.h, 14);
+  ctx.fillStyle = gr; ctx.fill();
+  ctx.clip();
+
+  var heat = clamp01(T/(sub.Tmax*0.95));
+  if (heat > 0.02){
+    var hg = ctx.createLinearGradient(0, box.y+box.h-80, 0, box.y+box.h);
+    hg.addColorStop(0, 'rgba(255,110,30,0)');
+    hg.addColorStop(1, 'rgba(255,120,35,'+(0.22*heat+0.04)+')');
+    ctx.fillStyle = hg;
+    ctx.fillRect(box.x, box.y+box.h-80, box.w, 80);
+  }
+  if (heat > 0.05){
+    ctx.strokeStyle = 'rgba(255,150,70,'+(0.30*heat)+')';
+    ctx.lineWidth = 2;
+    for (var i=0;i<7;i++){
+      var bx = box.x + box.w*(0.12+i*0.126);
+      var yy = box.y + box.h - 14 - ((Date.now()/22 + i*90) % (box.h-40));
+      ctx.beginPath();
+      ctx.moveTo(bx-6, yy+8); ctx.lineTo(bx, yy); ctx.lineTo(bx+6, yy+8);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = PAL.edge;
+  ctx.beginPath(); roundRect(box.x, box.y, box.w, box.h, 14); ctx.stroke();
+  ctx.restore();
+}
+
+function drawBonds(){
+  if (!optBond) return;
+  var i, pi, pj, s, dx, dy, d;
+  ctx.save();
+  ctx.lineWidth = 1.8;
+  for (i=0;i<bonds.length;i++){
+    pi = particles[bonds[i][0]]; pj = particles[bonds[i][1]];
+    s = Math.min(pi.sol, pj.sol);
+    if (s < 0.10) continue;
+    dx = pj.x-pi.x; dy = pj.y-pi.y;
+    d = Math.sqrt(dx*dx+dy*dy);
+    if (d > spacing*2.1) continue;
+    ctx.strokeStyle = PAL.bSolid + (s*0.55).toFixed(3) + ')';
+    ctx.beginPath(); ctx.moveTo(pi.x,pi.y); ctx.lineTo(pj.x,pj.y); ctx.stroke();
+  }
+  var R = spacing*1.45, R2 = R*R;
+  ctx.lineWidth = 1;
+  for (i=0;i<N_PART;i++){
+    pi = particles[i];
+    if (pi.gas || pi.sol > 0.05) continue;
+    for (var j=i+1;j<N_PART;j++){
+      pj = particles[j];
+      if (pj.gas || pj.sol > 0.05) continue;
+      dx = pj.x-pi.x; dy = pj.y-pi.y;
+      var d2 = dx*dx+dy*dy;
+      if (d2 < R2){
+        var al = 0.20*(1-Math.sqrt(d2)/R);
+        ctx.strokeStyle = PAL.bLiq + al.toFixed(3) + ')';
+        ctx.beginPath(); ctx.moveTo(pi.x,pi.y); ctx.lineTo(pj.x,pj.y); ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function molFill(p){
+  if (p.ion) return PAL.mIon;          // 离子
+  if (p.gas) return PAL.mGas;          // 已汽化
+  if (p.sol > 0.05) return PAL.mSolid; // 固态（含固液共存中未熔化的晶块）—蓝
+  return PAL.mLiq;                     // 液态 —青绿
+}
+
+function drawParticles(){
+  var i, p;
+
+  for (i=0;i<N_PART;i++){
+    p = particles[i];
+    var col = molFill(p);
+    var r = molR;
+    if (p.ion){
+      /* 正离子失去了最外层电子 → 离子半径略小于原来的分子/原子；
+         等离子体"变大、变亮"的观感应来自发光（光晕），而不是把球体本身画大。 */
+      r = molR*0.85;
+      var gl = ctx.createRadialGradient(p.x,p.y,r*0.5,p.x,p.y,r*2.0);
+      gl.addColorStop(0, PAL.ionGlow0);
+      gl.addColorStop(1, PAL.ionGlow1);
+      ctx.fillStyle = gl;
+      ctx.beginPath(); ctx.arc(p.x,p.y,r*2.0,0,6.283); ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,6.283);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = PAL.molEdge; ctx.stroke();
+    ctx.beginPath(); ctx.arc(p.x-r*0.32,p.y-r*0.32,r*0.34,0,6.283);
+    ctx.fillStyle = PAL.molHi; ctx.fill();
+    if (p.ion){
+      ctx.beginPath(); ctx.arc(p.x,p.y,r*1.55,0,6.283);
+      ctx.strokeStyle = PAL.ionRing; ctx.lineWidth=1.4; ctx.stroke();
+    }
+  }
+
+  for (i=0;i<electrons.length;i++){
+    var el = electrons[i];
+    /* 电子尺度最小（远小于离子核心），突出"自由电子很小很轻、运动很快" */
+    var eg = molR*0.62, ec = Math.max(1.5, molR*0.20);
+    var g2 = ctx.createRadialGradient(el.x,el.y,0,el.x,el.y,eg);
+    g2.addColorStop(0, PAL.elGlow0);
+    g2.addColorStop(1, PAL.elGlow1);
+    ctx.fillStyle = g2;
+    ctx.beginPath(); ctx.arc(el.x,el.y,eg,0,6.283); ctx.fill();
+    ctx.beginPath(); ctx.arc(el.x,el.y,ec,0,6.283);
+    ctx.fillStyle = PAL.elCore; ctx.fill();
+  }
+}
+
+/* 画布左上角「物态信息」的字号（px）。想整体调大/调小，只改这两个数。
+   2026-09-26 由 30 / 17 收小到 26 / 15。 */
+var INFO_NAME = 26, INFO_SUB = 15;
+
+function drawOverlay(bg){
+  var ph = PHASES[stateKey];
+  var pc = phaseColor();
+  var fg  = PAL.fg;
+  var fg2 = PAL.fg2;
+  /* 左上角：物态信息。原先带一块深色底板，2026-09-26 按用户要求去掉，
+     文字直接压在动画上，字号整体收小一档（30/17 → 26/15）。
+     两个调色板里的 panelBg / noteBg 随之停用。 */
+  var INFO_X = box.x + 16;                   // 与右上角说明的 16px 内边距对齐
+  var nameY  = box.y + 30, subY = nameY + 24;   // 行距 24px，随字号一起调
+  ctx.save();
+  ctx.font = '700 ' + INFO_NAME + 'px ' + FONT;
+  var tw = ctx.measureText(ph.name).width;
+  ctx.font = INFO_SUB + 'px ' + FONT;
+  var tw2 = ctx.measureText(sub.name + '　0000 K（-0000 ℃）').width;
+
+  ctx.font = '700 ' + INFO_NAME + 'px ' + FONT;
+  ctx.fillStyle = fg;
+  ctx.fillText(ph.name, INFO_X, nameY);
+  ctx.font = INFO_SUB + 'px ' + FONT;
+  ctx.fillStyle = fg2;
+  ctx.fillText(sub.name + '　' + T.toFixed(0) + ' K（' + (T-273.15).toFixed(0) + ' ℃）', INFO_X, subY);
+  ctx.fillStyle = pc;
+  ctx.fillRect(INFO_X, subY + 10, 92, 4);    // 状态色短线（不是底板，保留）
+  var infoR = INFO_X + Math.max(tw, tw2);    // 信息块右边界，供右上角说明避让
+
+  /* 右上角：示意模型说明（同样不带底板）。
+     原来放在底部左侧的"共存区 · 吸热但温度不变"已删除 —— 知识讲解区的
+     「能量与温度变化」已有完整说明，动画区不必重复。 */
+  if (box.h > 140){
+    var note = '示意模型：粒子大小与间距非真实比例';
+    ctx.font = '12px '+FONT;                 // 字号单位用 px：12pt ≈ 16px，会偏大
+    var nw = ctx.measureText(note).width;
+    var pL = box.x+box.w-16-nw;              // 文字左边界（右端贴容器内边距 16px）
+    /* 与左侧物态信息打架时下移一行（仍在右侧），避免窄画布上文字互相压叠 */
+    var nTop = (pL > infoR+12) ? box.y+10 : box.y+78;
+    ctx.fillStyle = fg2;
+    ctx.textAlign = 'right';
+    ctx.fillText(note, box.x+box.w-16, nTop+9);
+  }
+  ctx.restore();
+}
+
+function render(){
+  var bg = bgColors();
+  ctx.clearRect(0,0,W,H);
+  drawVessel(bg);
+  drawBonds();
+  drawParticles();
+  drawOverlay(bg);
+}
+
+/* ============ 面板 ============ */
+var el = {
+  dot:document.getElementById('dot'),
+  stateName:document.getElementById('stateName'),
+  stateHint:document.getElementById('stateHint'),
+  tK:document.getElementById('tK'), tC:document.getElementById('tC'),
+  matName:document.getElementById('matName'),
+  rTm:document.getElementById('rTm'), rTb:document.getElementById('rTb'), rTi:document.getElementById('rTi'),
+  bSpace:document.getElementById('bSpace'), vSpace:document.getElementById('vSpace'),
+  bForce:document.getElementById('bForce'), vForce:document.getElementById('vForce'),
+  bMove:document.getElementById('bMove'), vMove:document.getElementById('vMove'),
+  fSpace:document.getElementById('fSpace'), fForce:document.getElementById('fForce'),
+  fMotion:document.getElementById('fMotion'), fMacro:document.getElementById('fMacro'),
+  fEnergy:document.getElementById('fEnergy'), tip:document.getElementById('tip')
+};
+function hexA(hex,a){
+  var v = parseInt(hex.slice(1),16);
+  return 'rgba('+((v>>16)&255)+','+((v>>8)&255)+','+(v&255)+','+a+')';
+}
+function updatePanel(){
+  var ph = PHASES[stateKey];
+  var pc = phaseColor();
+  el.dot.style.background = pc;
+  el.dot.style.boxShadow = '0 0 0 4px ' + hexA(pc,.2);
+  el.stateName.textContent = ph.name;
+  el.stateName.style.color = pc;
+  el.stateHint.textContent = ph.hint;
+  el.tK.textContent = T.toFixed(0) + ' K';
+  el.tC.textContent = (T-273.15).toFixed(0) + ' ℃';
+  el.matName.textContent = sub.name.replace(/\s.*$/,'');
+  el.rTm.textContent = Math.round(sub.Tm) + ' K';
+  el.rTb.textContent = Math.round(sub.Tb) + ' K';
+  el.rTi.textContent = '≈' + Math.round(sub.Tion) + ' K';
+
+  var movePct = clamp01(Math.sqrt(Math.max(T,0)/sub.Tmax))*100;
+  el.bSpace.style.width = ph.space + '%';
+  el.bForce.style.width = ph.force + '%';
+  el.bMove.style.width = movePct.toFixed(0) + '%';
+  el.vSpace.textContent = ph.sv;
+  el.vForce.textContent = ph.fv;
+  el.vMove.textContent = movePct<12?'微弱':(movePct<30?'较弱':(movePct<55?'较剧烈':(movePct<80?'剧烈':'极剧烈')));
+
+  var U = sub.unit;
+  el.fSpace.textContent  = ph.fSpace.replace(/\{P\}/g,U);
+  el.fForce.textContent  = ph.fForce.replace(/\{P\}/g,U);
+  el.fMotion.textContent = ph.fMotion.replace(/\{P\}/g,U);
+  el.fMacro.textContent  = ph.fMacro.replace(/\{P\}/g,U);
+  el.fEnergy.textContent = ph.fEnergy.replace(/\{P\}/g,U);
+  el.tip.textContent     = ph.tip.replace(/\{P\}/g,U);
+
+  var map = {solid:0, melting:1, liquid:2, boiling:3, gas:4, plasma:5};
+  var btns = document.querySelectorAll('#chips .chip');
+  for (var i=0;i<btns.length;i++){
+    var on = (map[stateKey] === i) || (stateKey==='ionizing' && i===5);
+    btns[i].classList.toggle('on', !!on);
+  }
+
+  /* 状态变了才重校画布高度（上面刚把新文字写进 DOM，量出来的行高才是最终的） */
+  if (ABSORB_PENDING){ ABSORB_PENDING = false; reAbsorb(); }
+}
+
+/* ============ 控件 ============ */
+var slider = document.getElementById('slider');
+var scalebox = document.getElementById('scalebox');
+var SEG_STYLE = [
+  {c:'#3b82f6', t:'固态'}, {c:'#3b82f6', t:''}, {c:'#2f9ed9', t:'熔化共存'},
+  {c:'#14b8a6', t:'液态'}, {c:'#fb923c', t:'汽化共存'}, {c:'#fbbf24', t:'气态'},
+  {c:'#fcd34d', t:'气态升温'}, {c:'#f472b6', t:'部分电离'}, {c:'#c084fc', t:'等离子体'}
+];
+function buildScaleUI(){
+  scalebox.innerHTML = '';
+  var n = anchors.length;
+  var pct = 100/(n-1);
+  for (var i=0;i<n-1;i++){
+    var s = document.createElement('div');
+    s.className = 'seg';
+    s.style.left = (i*pct) + '%';
+    s.style.width = pct + '%';
+    s.style.background = SEG_STYLE[i].c;
+    s.textContent = SEG_STYLE[i].t;
+    scalebox.appendChild(s);
+  }
+  var marks = [
+    {f:2.5,  t:sub.Tm,   label:'熔点'},
+    {f:4.5,  t:sub.Tb,   label:'沸点'},
+    {f:7.74, t:sub.Tion, label:'电离'}
+  ];
+  for (var m=0;m<marks.length;m++){
+    var d = document.createElement('div');
+    d.className = 'mark';
+    d.style.left = (sOf(marks[m].f)*100) + '%';
+    d.innerHTML = '<i></i>' + marks[m].label + ' ' + Math.round(marks[m].t) + 'K';
+    scalebox.appendChild(d);
+  }
+}
+
+function setSlider(v){
+  sliderVal = clamp01(v);
+  slider.value = Math.round(sliderVal*1000);
+  computeState();
+  reassign();
+  updatePanel();
+}
+
+/* 演示状态的唯一入口：改状态 + 改按钮文案都在这里。
+   原来按钮文案散在 5 处各写一遍、暂停又只管粒子不管温度，正是这次 bug 的温床。
+   ★ 注意：render() 只在主循环 loop() 里调用（setTheme/resize 都不重绘），
+     所以 loop() 末尾那句 render() 必须保持无条件执行 —— 否则暂停期间切主题、
+     改窗口大小，画布就不会更新。 */
+function setDemo(next){
+  DEMO = next;
+  document.getElementById('btnAuto').textContent = (DEMO === 'run') ? '暂停演示' : '自动演示';
+}
+
+var JUMP = {solid:1.35, melting:2.5, liquid:3.5, boiling:4.5, gas:6.2, plasma:8.6};
+function jumpTo(key){
+  setDemo('idle');
+  setSlider(sOf(JUMP[key]));
+}
+
+var CHIPS = [
+  {k:'solid', t:'固态'}, {k:'melting', t:'固液共存'}, {k:'liquid', t:'液态'},
+  {k:'boiling', t:'液气共存'}, {k:'gas', t:'气态'}, {k:'plasma', t:'等离子体'}
+];
+function buildChips(){
+  var w = document.getElementById('chips');
+  w.innerHTML = '';
+  CHIPS.forEach(function(c){
+    var b = document.createElement('div');
+    b.className = 'chip';
+    b.textContent = c.t;
+    b.onclick = function(){ jumpTo(c.k); };
+    w.appendChild(b);
+  });
+}
+
+function buildSubSel(){
+  var w = document.getElementById('subsel');
+  w.innerHTML = '';
+  SUBSTANCES.forEach(function(s){
+    var b = document.createElement('div');
+    b.className = 'chip' + (s.key===sub.key?' on':'');
+    b.textContent = s.name;
+    b.onclick = function(){
+      sub = s;
+      buildScale(); buildScaleUI(); buildSubSel();
+      setSlider(sOf(1.35));
+      resize();
+    };
+    w.appendChild(b);
+  });
+}
+
+slider.addEventListener('input', function(){
+  setDemo('idle');                       // 手动拖滑杆：退出演示，粒子照常运动
+  setSlider(this.value/1000);
+});
+/* 一个按钮两个功能：演示中 → 暂停；其余 → 开始 / 从暂停处继续 */
+document.getElementById('btnAuto').onclick = function(){
+  if (DEMO === 'run'){ setDemo('hold'); return; }   // 暂停：温度、粒子、读数一起停
+  if (sliderVal >= 0.999) setSlider(0);             // 已经播到终点 → 从头开始
+  setDemo('run');
+};
+document.getElementById('btnReset').onclick = function(){
+  setDemo('idle');
+  setSlider(0);
+};
+document.getElementById('optBond').onchange = function(){ optBond = this.checked; };
+document.getElementById('themeBtn').addEventListener('click', function(){
+  setTheme(isLight() ? 'dark' : 'light');
+});
+window.addEventListener('resize', function(){ resize(); });
+
+/* ============ 主循环 ============ */
+var lastT = 0, acc = 0;
+function loop(now){
+  if (!lastT) lastT = now;
+  var dt = clamp((now-lastT)/1000, 0.004, 0.033);
+  lastT = now;
+
+  /* 自动演示：温度推进 + 各读数刷新。暂停（'hold'）时整段不执行，
+     所以温度、状态、分子间距等一切都不会再变 —— 这就是原来缺的那道闸。 */
+  if (DEMO === 'run'){
+    sliderVal = clamp01(sliderVal + dt/48);
+    slider.value = Math.round(sliderVal*1000);
+    computeState(); reassign(); updatePanel();
+    if (sliderVal >= 1) setDemo('idle');   // 播完自动停；粒子继续动，画面不会死
+  }
+
+  /* 只有"暂停演示"才冻住物理；手动模式（idle）粒子照常运动 */
+  if (DEMO !== 'hold'){
+    acc += dt;
+    var steps = 0;
+    while (acc > 0.008 && steps < 5){
+      stepPhysics(0.008);
+      updateElectrons(0.008);
+      acc -= 0.008; steps++;
+    }
+    acc = Math.min(acc, 0.05);
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+
+/* ============ 初始化 ============ */
+buildScale();
+buildScaleUI();
+buildChips();
+buildSubSel();
+resize();
+setSlider(0);
+
+/* 主题：优先恢复上次选择；localStorage 被禁用（无痕 / 本地文件限制）时回落到深色 */
+(function initTheme(){
+  var saved = null;
+  try { saved = localStorage.getItem('hm_theme'); } catch(err){}
+  setTheme(saved === 'light' ? 'light' : 'dark');
+})();
+
+/* 上面那次 resize() 跑在 setSlider(0) 之前，右栏读数还是占位符「—」，
+   行高没定型 → absorbSlack 会把余量量小。面板填好后再补校一次；
+   window.load 再兜一次（字体加载完尺寸可能微变）。
+   ★ 不能做得更频繁：每次重算都会重建粒子，动画途中改画布高度会看到跳变。 */
+requestAnimationFrame(function(){ resize(); });
+window.addEventListener('load', function(){ resize(); });
+requestAnimationFrame(loop);
+
+/* 容器宽度变化时自适应重建（预览面板拖动等不触发 window.resize 的场景） */
+if (typeof ResizeObserver !== 'undefined'){
+  var roLastW = cv.clientWidth;
+  new ResizeObserver(function(){
+    var w = cv.clientWidth;
+    if (Math.abs(w - roLastW) > 1){ roLastW = w; resize(); }
+  }).observe(cv);
+}
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/Card.astro';
+import { topics, topicByName } from '../../data/topics';
+import { sortByDateDesc, formatDate } from '../../utils';
+
+const base = import.meta.env.BASE_URL;
+const items = sortByDateDesc(await getCollection('experiments'));
+---
+<Base title="实验演示">
+  <header class="list-head">
+    <h1 class="page-title">实验演示</h1>
+    <p class="page-lead">实验过程的视频与动画演示，帮助学生看清现象背后的物理。</p>
+  </header>
+
+  <nav class="topic-bar">
+    {topics.map((t) => (
+      <a href={`${base}topics/${t.slug}/`}>{t.name}</a>
+    ))}
+  </nav>
+
+  {items.length === 0 ? (
+    <p class="notice">还没有实验演示。</p>
+  ) : (
+    <div class="grid">
+      {items.map((it) => (
+        <Card
+          href={`${base}experiments/${it.id}/`}
+          icon="flask"
+          label={topicByName(it.data.topic)?.name ?? it.data.topic}
+          title={it.data.title}
+          desc={it.data.summary}
+          meta={formatDate(it.data.date)}
+        />
+      ))}
+    </div>
+  )}
+</Base>

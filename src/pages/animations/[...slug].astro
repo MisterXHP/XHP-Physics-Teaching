@@ -1,0 +1,41 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { topicByName } from '../../data/topics';
+import { resolveAssetUrl, formatDate } from '../../utils';
+
+export async function getStaticPaths() {
+  const items = await getCollection('animations');
+  return items.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const src = resolveAssetUrl(entry.data.embed, base);
+const topic = topicByName(entry.data.topic);
+const { Content } = await render(entry);
+---
+<Base title={entry.data.title} description={entry.data.summary}>
+  <p><a href={`${base}animations/`}>← 返回动画库</a></p>
+  <h1 class="page-title">{entry.data.title}</h1>
+  <p class="page-lead">
+    {topic && (
+      <a class="tag tag--primary" href={`${base}topics/${topic.slug}/`}>{topic.name}</a>
+    )}
+    <span class="card__meta"> {formatDate(entry.data.date)}</span>
+  </p>
+
+  <div class="embed-toolbar">
+    <a class="btn" href={src} target="_blank" rel="noopener">全屏打开 ↗</a>
+    <span class="spacer"></span>
+    <span class="card__meta">提示：在下方直接用鼠标操作即可</span>
+  </div>
+
+  <div class="embed-frame">
+    <iframe src={src} title={entry.data.title} loading="lazy" allowfullscreen></iframe>
+  </div>
+
+  <article class="prose" style="margin-top: 28px;">
+    <Content />
+  </article>
+</Base>

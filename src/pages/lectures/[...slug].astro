@@ -1,0 +1,29 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { topicByName } from '../../data/topics';
+import { formatDate } from '../../utils';
+
+export async function getStaticPaths() {
+  const items = await getCollection('lectures');
+  return items.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const topic = topicByName(entry.data.topic);
+const { Content } = await render(entry);
+---
+<Base title={entry.data.title} description={entry.data.summary}>
+  <p><a href={`${base}lectures/`}>← 返回讲义库</a></p>
+  <h1 class="page-title">{entry.data.title}</h1>
+  <p class="page-lead">
+    {topic && (
+      <a class="tag tag--primary" href={`${base}topics/${topic.slug}/`}>{topic.name}</a>
+    )}
+    <span class="card__meta"> {formatDate(entry.data.date)}</span>
+  </p>
+  <article class="prose">
+    <Content />
+  </article>
+</Base>

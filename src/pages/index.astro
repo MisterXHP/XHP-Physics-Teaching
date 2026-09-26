@@ -1,0 +1,112 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Card from '../components/Card.astro';
+import { topicByName } from '../data/topics';
+import { sortByDateDesc, formatDate } from '../utils';
+
+const base = import.meta.env.BASE_URL;
+
+const animations = sortByDateDesc(await getCollection('animations'));
+const lectures = sortByDateDesc(await getCollection('lectures'));
+
+const featured = animations.filter((a) => a.data.featured);
+const picks = (featured.length ? featured : animations).slice(0, 3);
+const latestLectures = lectures.slice(0, 3);
+
+const libs = [
+  { href: `${base}animations/`, icon: 'play', label: '动画库', title: '交互动画', desc: '可动手操作的物理模拟，点开即玩。' },
+  { href: `${base}lectures/`, icon: 'doc', label: '讲义库', title: '教学讲义', desc: '知识点讲解与典型例题，公式排版清晰。' },
+  { href: `${base}experiments/`, icon: 'flask', label: '实验库', title: '实验演示', desc: '实验过程的视频与动画演示。' },
+  { href: `${base}downloads/`, icon: 'download', label: '下载库', title: '资源下载', desc: '教案、学案等可下载的教学资料。' },
+];
+
+function topicName(name: string) {
+  return topicByName(name)?.name ?? name;
+}
+---
+<Base>
+  <section class="hero">
+    <h1 class="page-title">大熊印象 · 物理星河</h1>
+    <p class="hero__lead">
+      这里有可以动手操作的物理交互动画、图文并茂的教学讲义、直观的实验演示，以及可下载的教学资源。<br />
+      希望它能帮到每一位正在学物理、教物理的人。
+    </p>
+    <div class="hero__actions">
+      <a class="btn" href={`${base}animations/`}>浏览交互动画</a>
+      <a class="btn ghost" href={`${base}search/`}>搜索内容</a>
+    </div>
+  </section>
+
+  <h2 class="section-title">内容板块</h2>
+  <div class="grid">
+    {libs.map((l) => (
+      <Card href={l.href} icon={l.icon} label={l.label} title={l.title} desc={l.desc} />
+    ))}
+  </div>
+
+  <h2 class="section-title">
+    精选动画
+    <a href={`${base}animations/`}>查看全部 →</a>
+  </h2>
+  {picks.length === 0 ? (
+    <p class="notice">还没有动画，去后台添加第一个吧。</p>
+  ) : (
+    <div class="grid">
+      {picks.map((it) => (
+        <Card
+          href={`${base}play/${it.id}/`}
+          icon="play"
+          external
+          label={topicName(it.data.topic)}
+          title={it.data.title}
+          desc={it.data.summary}
+          meta={formatDate(it.data.date)}
+        />
+      ))}
+    </div>
+  )}
+
+  <h2 class="section-title">
+    最新讲义
+    <a href={`${base}lectures/`}>查看全部 →</a>
+  </h2>
+  {latestLectures.length === 0 ? (
+    <p class="notice">还没有讲义。</p>
+  ) : (
+    <div class="grid">
+      {latestLectures.map((it) => (
+        <Card
+          href={`${base}lectures/${it.id}/`}
+          icon="doc"
+          label={topicName(it.data.topic)}
+          title={it.data.title}
+          desc={it.data.summary}
+          meta={formatDate(it.data.date)}
+        />
+      ))}
+    </div>
+  )}
+</Base>
+
+<style>
+  .hero {
+    padding: 28px 0 12px;
+    text-align: center;
+  }
+  .hero__lead {
+    font-size: 18px;
+    color: var(--text-muted);
+    max-width: 760px;
+    margin: 10px auto 0;
+    text-align: justify;
+    text-justify: inter-ideograph;
+  }
+  .hero__actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+</style>

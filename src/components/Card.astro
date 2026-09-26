@@ -1,0 +1,51 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  href: string;
+  label?: string;
+  title: string;
+  desc?: string;
+  meta?: string;
+  icon?: string;
+  external?: boolean;
+}
+const { href, label, title, desc, meta, icon, external } = Astro.props;
+
+// 各内容类型图标的彩色配色
+const tones: Record<string, { fg: string; bg: string }> = {
+  play: { fg: '#60a5fa', bg: 'rgba(59, 130, 246, 0.18)' },
+  doc: { fg: '#34d399', bg: 'rgba(16, 185, 129, 0.18)' },
+  flask: { fg: '#fbbf24', bg: 'rgba(245, 158, 11, 0.18)' },
+  download: { fg: '#a78bfa', bg: 'rgba(139, 92, 246, 0.18)' },
+};
+const tone = icon ? tones[icon] : undefined;
+const iconStyle = tone ? `color:${tone.fg};background:${tone.bg}` : undefined;
+---
+<a
+  class="card"
+  href={href}
+  target={external ? '_blank' : undefined}
+  rel={external ? 'noopener' : undefined}
+>
+  {(icon || label) && (
+    <span class="card__top">
+      {icon && (
+        <span class="card__icon" style={iconStyle}>
+          <Icon name={icon} size={20} />
+        </span>
+      )}
+      {label && <span class="card__label">{label}</span>}
+    </span>
+  )}
+  <h3 class="card__title">
+    {title}
+    {external && (
+      <span class="card__ext">
+        <Icon name="external" size={13} />
+      </span>
+    )}
+  </h3>
+  {desc && <p class="card__desc">{desc}</p>}
+  {meta && <span class="card__meta">{meta}</span>}
+</a>

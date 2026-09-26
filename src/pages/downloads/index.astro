@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/Card.astro';
+import { topics, topicByName } from '../../data/topics';
+import { sortByDateDesc, formatDate } from '../../utils';
+
+const base = import.meta.env.BASE_URL;
+const items = sortByDateDesc(await getCollection('downloads'));
+---
+<Base title="资源下载">
+  <header class="list-head">
+    <h1 class="page-title">资源下载</h1>
+    <p class="page-lead">教案、学案、课件等可下载的教学资料。</p>
+  </header>
+
+  <nav class="topic-bar">
+    {topics.map((t) => (
+      <a href={`${base}topics/${t.slug}/`}>{t.name}</a>
+    ))}
+  </nav>
+
+  {items.length === 0 ? (
+    <p class="notice">还没有可下载的资源。</p>
+  ) : (
+    <div class="grid">
+      {items.map((it) => (
+        <Card
+          href={`${base}downloads/${it.id}/`}
+          icon="download"
+          label={topicByName(it.data.topic)?.name ?? it.data.topic}
+          title={it.data.title}
+          desc={it.data.summary}
+          meta={[it.data.format, formatDate(it.data.date)].filter(Boolean).join(' · ')}
+        />
+      ))}
+    </div>
+  )}
+</Base>

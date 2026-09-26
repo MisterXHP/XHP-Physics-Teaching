@@ -1,0 +1,71 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/Card.astro';
+import { topics } from '../../data/topics';
+import { sortByDateDesc, formatDate } from '../../utils';
+
+export async function getStaticPaths() {
+  return topics.map((t) => ({ params: { topic: t.slug }, props: { topic: t } }));
+}
+
+const { topic } = Astro.props;
+const base = import.meta.env.BASE_URL;
+
+const [animations, lectures, experiments, downloads] = await Promise.all([
+  getCollection('animations'),
+  getCollection('lectures'),
+  getCollection('experiments'),
+  getCollection('downloads'),
+]);
+
+const pick = (arr: { data: { topic: string; date?: Date } }[]) =>
+  sortByDateDesc(arr.filter((x) => x.data.topic === topic.name));
+
+const groups = [
+  { label: '交互动画', href: 'play', icon: 'play', items: pick(animations) },
+  { label: '教学讲义', href: 'lectures', icon: 'doc', items: pick(lectures) },
+  { label: '实验演示', href: 'experiments', icon: 'flask', items: pick(experiments) },
+  { label: '资源下载', href: 'downloads', icon: 'download', items: pick(downloads) },
+];
+
+const total = groups.reduce((n, g) => n + g.items.length, 0);
+---
+<Base title={topic.name} description={topic.desc}>
+  <header class="list-head">
+    <h1 class="page-title">{topic.name}</h1>
+    <p class="page-lead">{topic.desc}</p>
+  </header>
+
+  <nav class="topic-bar">
+    {topics.map((t) => (
+      <a href={`${base}topics/${t.slug}/`} class={t.slug === topic.slug ? 'active' : ''}>{t.name}</a>
+    ))}
+  </nav>
+
+  {total === 0 ? (
+    <p class="notice">这个主题下暂时还没有内容。</p>
+  ) : (
+    groups.map(
+      (g) =>
+        g.items.length > 0 && (
+          <>
+            <h2 class="section-title">{g.label}</h2>
+            <div class="grid">
+              {g.items.map((it) => (
+                <Card
+                  href={`${base}${g.href}/${it.id}/`}
+                  icon={g.icon}
+                  external={g.href === 'play'}
+                  label={topic.name}
+                  title={it.data.title}
+                  desc={it.data.summary}
+                  meta={formatDate(it.data.date)}
+                />
+              ))}
+            </div>
+          </>
+        )
+    )
+  )}
+</Base>

@@ -1,0 +1,83 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  back?: boolean;
+  backHref?: string;
+}
+const { back = false, backHref } = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+const path = Astro.url.pathname;
+const home = base.replace(/\/$/, '');
+
+const links = [
+  { href: base, label: '首页' },
+  { href: `${base}animations/`, label: '动画库' },
+  { href: `${base}lectures/`, label: '讲义库' },
+  { href: `${base}experiments/`, label: '实验库' },
+  { href: `${base}downloads/`, label: '下载库' },
+  { href: `${base}search/`, label: '搜索' },
+];
+
+function isActive(href: string): boolean {
+  if (href === base) return path.replace(/\/$/, '') === home;
+  return path.startsWith(href);
+}
+---
+<header class="site-header">
+  <div class="container site-header__inner">
+    {back && (
+      <a class="back-btn" href={backHref ?? `${base}animations/`} aria-label="返回">
+        <Icon name="back" size={18} />
+        <span>返回</span>
+      </a>
+    )}
+    <a class="brand" href={base}>
+      <Icon name="atom" size={22} />
+      <span>大熊印象 · 物理星河</span>
+    </a>
+    <nav class="nav">
+      {links.map((l) => (
+        <a href={l.href} class={isActive(l.href) ? 'active' : ''}>{l.label}</a>
+      ))}
+    </nav>
+    <button class="theme-toggle" id="theme-toggle" aria-label="切换深浅主题" title="切换深浅主题">🌙</button>
+  </div>
+</header>
+<script>
+  const root = document.documentElement;
+  const btn = document.getElementById('theme-toggle');
+  function render() {
+    if (btn) btn.textContent = root.getAttribute('data-theme') === 'light' ? '☀️' : '🌙';
+  }
+  btn?.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    root.setAttribute('data-theme', next);
+    try {
+      localStorage.setItem('hm_theme', next);
+    } catch (e) {}
+    render();
+  });
+  render();
+</script>
+<style>
+  .back-btn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-2);
+    color: var(--text);
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .back-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    text-decoration: none;
+  }
+</style>

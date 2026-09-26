@@ -1,0 +1,106 @@
+# Decap CMS 可视化后台配置
+# 后台地址：https://misterxhp.github.io/XHP-Physics-Teaching/admin/
+
+backend:
+  name: github
+  repo: misterxhp/XHP-Physics-Teaching
+  branch: main
+  # 首次使用需配置 GitHub OAuth 代理，详见项目根目录 README.md
+  base_url: ""
+  auth_endpoint: auth
+
+# 站点部署在子路径下，媒体文件路径需带 base
+media_folder: "public/uploads"
+public_folder: "/XHP-Physics-Teaching/uploads"
+
+locale: zh_Hans
+
+# 17 个物理主题（与 src/data/topics.ts 保持一致；以后增删主题请两处同步）
+x-topics: &topics
+  - 直线运动
+  - 相互作用
+  - 牛顿运动定律
+  - 曲线运动
+  - 万有引力与宇宙航行
+  - 机械能守恒定律
+  - 动量守恒定律
+  - 机械振动与机械波
+  - 静电场
+  - 直流电路
+  - 磁场
+  - 电磁感应
+  - 交变电流与电磁波
+  - 光
+  - 热学
+  - 近代物理初步
+  - 物理实验
+
+collections:
+  - name: animations
+    label: 交互动画
+    label_singular: 交互动画
+    folder: src/content/animations
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    fields:
+      - { name: title, label: 标题, widget: string }
+      - { name: topic, label: 主题分类, widget: select, options: *topics }
+      - { name: summary, label: 简介, widget: text, required: false }
+      - { name: date, label: 日期, widget: datetime, date_format: "YYYY-MM-DD", time_format: false, required: false }
+      - { name: featured, label: 首页精选, widget: boolean, default: false }
+      - { name: embed, label: 嵌入地址, widget: string, hint: "动画 html 的相对路径（如 animations/xxx.html），或完整网址" }
+      - { name: body, label: 说明（支持公式）, widget: markdown, required: false }
+
+  - name: lectures
+    label: 教学讲义
+    label_singular: 教学讲义
+    folder: src/content/lectures
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    fields:
+      - { name: title, label: 标题, widget: string }
+      - { name: topic, label: 主题分类, widget: select, options: *topics }
+      - { name: summary, label: 简介, widget: text, required: false }
+      - { name: date, label: 日期, widget: datetime, date_format: "YYYY-MM-DD", time_format: false, required: false }
+      - { name: featured, label: 首页精选, widget: boolean, default: false }
+      - { name: body, label: 正文（支持公式）, widget: markdown, required: false }
+
+  - name: experiments
+    label: 实验演示
+    label_singular: 实验演示
+    folder: src/content/experiments
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    fields:
+      - { name: title, label: 标题, widget: string }
+      - { name: topic, label: 主题分类, widget: select, options: *topics }
+      - { name: summary, label: 简介, widget: text, required: false }
+      - { name: date, label: 日期, widget: datetime, date_format: "YYYY-MM-DD", time_format: false, required: false }
+      - { name: featured, label: 首页精选, widget: boolean, default: false }
+      - { name: video, label: 视频地址, widget: string, required: false, hint: "视频文件路径（.mp4 等）或外部播放链接，可留空" }
+      - { name: body, label: 说明（支持公式）, widget: markdown, required: false }
+
+  - name: downloads
+    label: 资源下载
+    label_singular: 资源下载
+    folder: src/content/downloads
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    fields:
+      - { name: title, label: 标题, widget: string }
+      - { name: topic, label: 主题分类, widget: select, options: *topics }
+      - { name: summary, label: 简介, widget: text, required: false }
+      - { name: date, label: 日期, widget: datetime, date_format: "YYYY-MM-DD", time_format: false, required: false }
+      - { name: featured, label: 首页精选, widget: boolean, default: false }
+      - { name: file, label: 文件地址, widget: string, required: false, hint: "上传到 public 下的文件路径或外部链接，可留空" }
+      - { name: format, label: 文件格式, widget: string, required: false, hint: "如 PDF / DOCX" }
+      - { name: size, label: 文件大小, widget: string, required: false, hint: "如 1.2 MB" }
+      - { name: body, label: 说明（支持公式）, widget: markdown, required: false }

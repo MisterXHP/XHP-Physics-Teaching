@@ -1,0 +1,44 @@
+---
+import Base from '../layouts/Base.astro';
+const base = import.meta.env.BASE_URL;
+---
+<Base title="搜索">
+  <h1 class="page-title">搜索</h1>
+  <p class="page-lead">输入关键词，搜索全站的交互动画、教学讲义、实验演示与资源下载。</p>
+
+  <div class="search-wrap">
+    <div id="search"></div>
+  </div>
+
+  <link rel="stylesheet" href={`${base}pagefind/pagefind-ui.css`} />
+  <script is:inline src={`${base}pagefind/pagefind-ui.js`}></script>
+  <script is:inline>
+    window.addEventListener('DOMContentLoaded', function () {
+      if (window.PagefindUI) {
+        new window.PagefindUI({
+          element: '#search',
+          showSubResults: true,
+          translations: {
+            placeholder: '搜索动画、讲义、实验…',
+            clear_search: '清除',
+            load_more: '加载更多结果',
+            search_label: '搜索本站',
+            filters_label: '筛选',
+            zero_results: '没有找到与 [SEARCH_TERM] 相关的内容',
+            many_results: '找到 [COUNT] 条与 [SEARCH_TERM] 相关的内容',
+            one_result: '找到 [COUNT] 条与 [SEARCH_TERM] 相关的内容',
+            alt_search: '未找到 [SEARCH_TERM]，改为显示 [DIFFERENT_TERM] 的结果',
+            search_suggestion: '没有结果，试试这些关键词：',
+            searching: '正在搜索 [SEARCH_TERM]…',
+          },
+        });
+      }
+    });
+  </script>
+</Base>
+
+<style>
+  .search-wrap {
+    max-width: 760px;
+  }
+</style>

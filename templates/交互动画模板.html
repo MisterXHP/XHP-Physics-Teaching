@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>交互动画模板 · 大熊印象 · 物理星河</title>
+<!--
+======================================================================
+ 中学物理交互动画 · 统一模板（供 AI 生成动画时参照）
+ --------------------------------------------------------------------
+ 硬性规范：
+ 1. 单文件 HTML，CSS / JS 全部内联；除 KaTeX 外不引用任何外部资源。
+ 2. 公式一律用 KaTeX：行内写 $...$，独立成行写 $$...$$。
+    禁止使用 MathML（<math>）或 MathJax。
+ 3. KaTeX 用下方「智能加载」代码：优先读同级 katex/ 目录，
+    找不到（例如单独把本文件发给别人）就自动回退 CDN。
+ 4. 主题：深色为默认，给 <body> 加 class="light" 即切浅色；
+    所有颜色用顶部 CSS 变量，不要写死。
+ 5. 正文字号 ≥ 16px（课堂投影可更大）；主色 #4d8dff，强调色可用 #ff4d8d。
+ 6. 结构建议：标题区 → 画布区 → 控制区 → 说明区。
+ 7. 若要「离线单文件版」（对方无网络），用 scripts/bundle_animation.py --offline 打包。
+======================================================================
+-->
+<style>
+:root{
+  --bg1:#0d1526; --bg2:#0a101c; --card:#141d2f; --card2:#0f1726; --line:#263349;
+  --text:#e8eef8; --text2:#96a7c0; --accent:#4d8dff; --warn:#ff4d8d;
+}
+body.light{
+  --bg1:#eef2f6; --bg2:#e3eaf1; --card:#ffffff; --card2:#f7fafc; --line:#dde3ea;
+  --text:#202730; --text2:#5b6672; --accent:#185fa5; --warn:#c2185b;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:16px 18px;
+  background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 100%);
+  background-attachment:fixed; color:var(--text);
+  font:17px/1.6 "Times New Roman",Times,"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+}
+.wrap{max-width:1100px; margin:0 auto}
+h1{font-size:26px; margin:0 0 4px; font-weight:600; letter-spacing:.5px}
+.sub{margin:0 0 16px; color:var(--text2); font-size:16px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:14px}
+canvas{display:block; width:100%; border-radius:8px}
+.controls{display:flex; flex-wrap:wrap; gap:18px; align-items:center}
+.controls label{display:flex; align-items:center; gap:8px; font-size:16px}
+input[type=range]{width:170px}
+.btn{
+  border:1px solid var(--line); background:var(--card2); color:var(--text);
+  border-radius:999px; padding:7px 16px; font-size:15px; cursor:pointer;
+}
+.btn:hover{border-color:var(--accent); color:var(--accent)}
+/* KaTeX 适配：字号与正文协调，颜色自动继承主题 */
+.katex{font-size:1.08em}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>动画标题（写在这里）</h1>
+  <p class="sub">一行副标题，可直接嵌公式，例如 $v = v_0 + at$</p>
+
+  <div class="card">
+    <canvas id="cv" height="360"></canvas>
+  </div>
+
+  <div class="card controls">
+    <label>参数一 <span id="valA">1.0</span>
+      <input type="range" id="rngA" min="0" max="10" step="0.1" value="1">
+    </label>
+    <label>参数二 <span id="valB">2.0</span>
+      <input type="range" id="rngB" min="0" max="10" step="0.1" value="2">
+    </label>
+    <button class="btn" id="btnReset">重置</button>
+  </div>
+
+  <div class="card">
+    <p>说明文字。独立公式示例（会居中另起一行）：</p>
+    $$x = v_0 t + \tfrac{1}{2} a t^{2}$$
+  </div>
+
+</div>
+
+<!-- ============ KaTeX 智能加载（本地优先 → CDN 回退） ============ -->
+<script>
+(function () {
+  var LOCAL = 'katex/';
+  var CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/';
+  function boot(base) {
+    var l = document.createElement('link');
+    l.rel = 'stylesheet'; l.href = base + 'katex.min.css';
+    document.head.appendChild(l);
+    var k = document.createElement('script');
+    k.src = base + 'katex.min.js';
+    k.onload = function () {
+      var a = document.createElement('script');
+      a.src = base + 'contrib/auto-render.min.js';
+      a.onload = function () {
+        if (window.renderMathInElement)
+          renderMathInElement(document.body, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false }
+            ], throwOnError: false
+          });
+      };
+      document.head.appendChild(a);
+    };
+    k.onerror = function () { if (base !== CDN) boot(CDN); };
+    document.head.appendChild(k);
+  }
+  boot(LOCAL);
+})();
+</script>
+
+<!-- ==================== 动画逻辑（写在这里） ==================== -->
+<script>
+(function () {
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var rngA = document.getElementById('rngA');
+  var valA = document.getElementById('valA');
+  var rngB = document.getElementById('rngB');
+  var valB = document.getElementById('valB');
+
+  function draw() {
+    var W = cv.clientWidth || 800, H = 360;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--card') || '#141d2f';
+    ctx.fillRect(0, 0, W, H);
+    // TODO: 在这里实现你的绘制逻辑
+  }
+
+  rngA.addEventListener('input', function () { valA.textContent = (+rngA.value).toFixed(1); draw(); });
+  rngB.addEventListener('input', function () { valB.textContent = (+rngB.value).toFixed(1); draw(); });
+  document.getElementById('btnReset').addEventListener('click', function () {
+    rngA.value = 1; rngB.value = 2; valA.textContent = '1.0'; valB.textContent = '2.0'; draw();
+  });
+
+  draw();
+})();
+</script>
+</body>
+</html>
