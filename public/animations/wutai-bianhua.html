@@ -119,7 +119,10 @@
   .chip:hover{border-color:var(--accent);color:var(--text);}
   .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
 
-  .controls{padding:13px 18px 14px;flex:1;display:flex;flex-direction:column;justify-content:center;}
+  /* 温度调节卡：自然高度、内容顶对齐 —— 不再 flex:1 拉伸去凑右栏高度，
+     也不再 justify-content:center 把余量上下平分（会出现上下两块大留白）。
+     两栏等高由画布吸收余量来实现（见 measureSlack / absorbSlack）。 */
+  .controls{padding:13px 18px 14px;}
   .ctrl-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
   .ctrl-head .t1{font-weight:700;font-size:19px;}
   .ctrl-head .note{color:var(--text2);font-size:15px;}
@@ -713,30 +716,23 @@ function resize(){
   fitViewport(cssW, cssH);
 }
 
-/* 「余量归画布」—— 行高由右栏知识讲解的文字决定，左栏一般用不满：
-   多出来的高度原本被 .controls{flex:1} 吃掉、又被 justify-content:center 上下平分，
-   于是在「温度调节」卡片里露出上下两块等高的空白，而画布却一直卡在上限、长不大。
-   做法：把控制卡临时解除 flex，量出它的自然高度，差值全部加给画布。
-   这么做不会让整页变高 —— 行高本来就是右栏撑住的，画布只是把空出来的位置占满
-   （1920×1080 / 1600×900 / 1536×864 等尺寸实测：页面总高逐像素不变）。
-   ★ 关于 reAbsorb（状态变化时重校高度）—— **已停用**，原因见该函数处的说明：
-     右栏讲解文字随状态变长变短（固液共存最长），换状态时余量会再冒出来，
-     于是当初会在演示途中再顶一次画布；但动画途中改画布高度会有肉眼可见的跳变
-     （实测切到固液共存时 526px → 640px）。两者冲突，现按「高度一次定好、全程恒定」处理。
-     配图版走固定尺寸（__REC.fixed），两个入口都直接跳过。 */
+/* 「余量归画布」—— 行高由右栏知识讲解的文字决定，左栏一般用不满。
+   做法：量出两栏高度差（右栏撑起的行高 − 左栏当前自然高），全部加给画布，
+   让动画区补位、两栏等高；温度调节卡保持自然高度、内容顶对齐（不再被拉伸居中）。
+   这么做不会让整页变高 —— 行高本来就是右栏撑住的，画布只是把空出来的位置占满。
+   ★ reAbsorb（状态变化时重校）已停用：右栏文字随状态变长变短，动画途中重校高度
+     会有肉眼可见的跳变，现按「画布高度一次定好、全程恒定」处理（详见该函数处说明）。
+   配图版走固定尺寸（__REC.fixed），入口直接跳过。 */
 
-/* 量控制卡里被上下平分的余量（= 左栏用不满的那部分行高） */
+/* 量可转给画布的余量（= 两栏行高 − 左栏当前自然高）。
+   旧法是「控制卡被 flex:1 拉伸的高度 − 自然高度」，但控制卡已不再拉伸（内容顶对齐），
+   故改为直接量两栏差：右栏（知识讲解）撑起行高，左栏差多少就把画布加多少。
+   控制卡自然高、内容顶对齐；画布长高补位，两栏依旧等高。 */
 function measureSlack(){
-  var ctrl = document.querySelector('.controls');
-  if (!ctrl) return 0;
-  var stretched = ctrl.offsetHeight;
-  var pFlex = ctrl.style.flex, pJc = ctrl.style.justifyContent;
-  ctrl.style.flex = '0 0 auto';
-  ctrl.style.justifyContent = 'flex-start';
-  var natural = ctrl.offsetHeight;   // 读一次 offsetHeight 即强制重排，量到的是真实自然高
-  ctrl.style.flex = pFlex;
-  ctrl.style.justifyContent = pJc;
-  return stretched - natural;
+  var left = document.querySelector('.col-left'), right = document.querySelector('.col-right');
+  if (!left || !right) return 0;
+  var slack = right.offsetHeight - left.offsetHeight;   /* grid stretch 下右栏高 = 行高 */
+  return slack > 0 ? slack : 0;
 }
 
 /* 吸收余量时画布能长到多高：宽高比 0.85 + 硬顶 640（比初始预算的 0.72 宽松，
