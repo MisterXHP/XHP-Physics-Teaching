@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>匀变速直线运动 · 交互演示</title>
+<title>匀变速直线运动 · 追击相遇</title>
 <link rel="stylesheet" href="katex/katex.min.css">
 <style>
 :root{
@@ -135,7 +135,7 @@ input[type=checkbox]{accent-color:var(--accent)}
 
 <header class="top" id="hdr">
   <div class="titles">
-    <h1>匀变速直线运动 · 交互演示</h1>
+    <h1>匀变速直线运动 · 追击相遇</h1>
     <p class="sub">双小车 · 三参考系切换 · $x$–$t$ / $v$–$t$ 图像同步 · 课堂图像预测</p>
   </div>
   <button class="btn" id="themeBtn">☀ 浅色模式</button>
@@ -155,16 +155,16 @@ input[type=checkbox]{accent-color:var(--accent)}
         <button class="btn" id="fitBtn">⤢ 适配视图</button>
         <span style="font-size:16px;color:var(--text2);white-space:nowrap">滚轮缩放 <b id="zoomLabel" style="color:var(--text)">100%</b></span>
         <input type="range" class="tl" id="tl" min="0" max="1000" value="0" step="1">
-        <span class="tLabel">$t$ = <b id="tNow">0.0</b> s / <b id="tAll">10.0</b> s</span>
+        <span class="tLabel">$t$ = <b id="tNow">0.0</b> s / <b id="tAll">16.0</b> s</span>
       </div>
     </div>
 
     <div class="card controls" id="ctrl">
       <div class="row">
         <span style="font-size:16px;color:var(--text2)">追击相遇预设：</span>
-        <button class="btn" id="q1">追击一 · 加速追匀速</button>
-        <button class="btn" id="q2">追击二 · 减速未追上</button>
-        <button class="btn" id="q3">追击三 · 二次相遇</button>
+        <button class="btn" id="q1">情境1 · 加速追匀速</button>
+        <button class="btn" id="q2">情境2 · 减速未追上</button>
+        <button class="btn" id="q3">情境3 · 二次相遇</button>
         <span style="flex:1"></span>
         <button class="btn play" id="playBtn">▶ 播放</button>
         <button class="btn" id="resetBtn">↺ 重置</button>
@@ -185,8 +185,8 @@ input[type=checkbox]{accent-color:var(--accent)}
         </fieldset>
         <fieldset class="carBox" id="panelB">
           <legend style="color:#2FBF95">B 车（绿色）</legend>
-          <div class="pline"><label>初位置 $x_0$</label><input type="number" id="bx0" step="1" value="80"><input type="range" id="bx0s" min="-100" max="400" step="1" value="80"><span class="unit">$\text{m}$</span></div>
-          <div class="pline"><label>初速度 $v_0$</label><input type="number" id="bv0" step="0.5" min="-50" max="50" value="6"><input type="range" id="bv0s" min="-50" max="50" step="0.5" value="6"><span class="unit">$\text{m/s}$</span></div>
+          <div class="pline"><label>初位置 $x_0$</label><input type="number" id="bx0" step="1" value="40"><input type="range" id="bx0s" min="-100" max="400" step="1" value="40"><span class="unit">$\text{m}$</span></div>
+          <div class="pline"><label>初速度 $v_0$</label><input type="number" id="bv0" step="0.5" min="-50" max="50" value="10"><input type="range" id="bv0s" min="-50" max="50" step="0.5" value="10"><span class="unit">$\text{m/s}$</span></div>
           <div class="pline"><label>加速度 $a$</label><input type="number" id="ba" step="0.1" min="-10" max="10" value="0"><input type="range" id="bas" min="-10" max="10" step="0.1" value="0"><span class="unit">$\text{m/s}^2$</span></div>
           <label class="chkline"><input type="checkbox" id="showBChk" checked> 显示 B 车（隐藏后可单独研究 A 车）</label>
           <label class="chkline"><input type="checkbox" id="bstop"> 速度减为 0 后停止（刹车模型）</label>
@@ -195,8 +195,8 @@ input[type=checkbox]{accent-color:var(--accent)}
 
       <div class="row">
         <span style="font-size:17px">总时间 $t$</span>
-        <input type="number" id="tmax" step="0.5" min="1" max="30" value="10" style="width:74px;font-size:17px;padding:3px 5px;border:1px solid var(--btnline);border-radius:6px;background:var(--inputbg);color:var(--text)">
-        <input type="range" id="tmaxs" min="1" max="30" step="0.5" value="10" style="width:120px">
+        <input type="number" id="tmax" step="0.5" min="1" max="30" value="16" style="width:74px;font-size:17px;padding:3px 5px;border:1px solid var(--btnline);border-radius:6px;background:var(--inputbg);color:var(--text)">
+        <input type="range" id="tmaxs" min="1" max="30" step="0.5" value="16" style="width:120px">
         <span style="font-size:17px">图像对象</span>
         <select id="objSel">
           <option value="A">A 车</option>
@@ -323,16 +323,17 @@ var THEMES = {
 };
 var state = {
   theme:'dark',
-  t:0, tMax:10, playing:false, speed:1,
+  t:0, tMax:16, playing:false, speed:1,
   frame:'ground',            /* ground | A | B */
   strobe:false, showB:true,
   graphObj:'both',           /* A | B | both | mark */
   objBeforePredict:null,     /* 进入预测模式前的图像对象，退出时恢复 */
   predict:false, revealed:false, revealStart:0, revealT:0,
   ghosts:[],
+  /* 默认初始参数 = 情境1（PRESETS[0]）：改预设时这里也要同步改，见文件末尾的 syncInputs 说明 */
   cars:{
     A:{x0:0,  v0:0, a:2, stop:false, name:'A车'},
-    B:{x0:80, v0:6, a:0, stop:false, name:'B车'}
+    B:{x0:40, v0:10, a:0, stop:false, name:'B车'}
   }
 };
 var PAL = THEMES.dark;
@@ -465,6 +466,14 @@ if (typeof window !== 'undefined' && window.addEventListener){
    比例尺只在加载、切换预设、按「适配视图」时整定；调节 v₀/a/x₀ 不改缩放；
    动画区支持滚轮缩放。 */
 var cam = 0, ppm = 6, fitPpm = 6;
+/* 画面原点所在的横向比例（与 drawSceneRoad 的 orgX 共用，避免两处改不同步） */
+var ORGX_RATIO = 0.2;
+/* A 车自动跟随：车中心在画面内的安全区间（距左 / 右边缘保留的像素）。
+   左侧留白取 40（车半宽约 32，40 已能保证车身完整），且必须小于原点位置 W*0.2，
+   否则车停在原点时就会误触发跟随，画面会自己动一下。 */
+var FOLLOW_PAD_L = 40, FOLLOW_PAD_R = 96;
+/* 相机阻尼时间常数（秒）：拖动时间轴时镜头平滑跟上，不会瞬移 */
+var FOLLOW_TAU = 0.12;
 
 function snapScale(){
   var W = cvS.clientWidth || 900;
@@ -483,9 +492,33 @@ function snapScale(){
   var k2 = negReach > 0 ? leftRoom / (negReach + 25) : 99;
   ppm = clamp(Math.min(k1, k2), 1.8, 6);
   fitPpm = ppm;
+  resetCam();                          /* 「适配视图」= 镜头回到默认位置 */
 }
 function zoomBy(f){
   ppm = clamp(ppm * f, 0.5, 24);
+}
+
+/* ---------------- 相机：地面系下的 A 车自动跟随 ----------------
+   地面系默认锁死原点（地面静止）。当 A 车逼近画面边缘时相机被「推」着走，
+   使 A 车始终停在安全区内 —— 只在越界时才动，因此不会来回抖动；
+   车回到安全区后相机停住不再回退，避免反复拉扯。
+   A / B 参考系本来就锁定对应车，无需再跟随。 */
+function followTarget(W){
+  var orgX = W * ORGX_RATIO, minS = FOLLOW_PAD_L, maxS = W - FOLLOW_PAD_R;
+  var sxA = orgX + (kin(state.cars.A, state.t).x - cam) * ppm;
+  if (sxA > maxS) return cam + (sxA - maxS) / ppm;      /* 车太靠右 → 相机右移 */
+  if (sxA < minS) return cam - (minS - sxA) / ppm;      /* 车太靠左 → 相机左移 */
+  return cam;                                            /* 仍在安全区内 → 不动 */
+}
+/* 重置镜头：直接到位、不做平滑（适配视图 / 重置 / 切换参考系时用） */
+function resetCam(){
+  var W = cvS.clientWidth || 900;
+  if (state.frame === 'A') cam = kin(state.cars.A, state.t).x;
+  else if (state.frame === 'B') cam = kin(state.cars.B, state.t).x;
+  else {
+    cam = 0;                                             /* 先回到原点 */
+    cam = followTarget(W);                               /* 若此刻车已在画面外，直接跟到位 */
+  }
 }
 
 /* ---------------- 绘制基础件 ---------------- */
@@ -546,7 +579,7 @@ function drawCar(c, sx, sy, col, label, alpha){
   c.beginPath(); c.arc(sx-14, sy-1, 2.5, 0, TAU); c.fill();
   c.beginPath(); c.arc(sx+14, sy-1, 2.5, 0, TAU); c.fill();
   if ((alpha === undefined || alpha > 0.7) && label){
-    c.fillStyle = PAL.carLabel; c.font = '600 17px ' + FONT;
+    c.fillStyle = PAL.carLabel; c.font = '600 17px ' + FONT_MATH;
     c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(label, sx, sy-9);
   }
@@ -584,7 +617,9 @@ function drawClouds(c, W, dt){
 function drawEdgeBadge(c, W, y, sxp, name, dist, color){
   var right = sxp > W - 10;
   var text = name + (right ? ' → ' : ' ← ') + dist + ' m';
-  c.font = '18px ' + FONT;
+  /* 牌面是「A 车 → 120 m」这类车辆标签 + 里程，同样用数学字体保持一致
+     （KaTeX_Main 的字符表含 ← → 箭头，不会回退） */
+  c.font = '18px ' + FONT_MATH;
   var tw = c.measureText(text).width;
   var bw = tw + 24, bh = 28;
   var bx = right ? W - bw - 6 : 6;
@@ -606,10 +641,13 @@ function drawScene(dt){
   var kB = kin(state.cars.B, state.t);
   var fk = frameCar() ? kin(frameCar(), state.t) : {x:0,v:0,a:0};
 
-  /* --- 相机：严格锁定参考系 --- */
+  /* --- 相机：A/B 系锁定对应车；地面系锁死原点，但 A 车逼近画面边缘时自动跟随 --- */
   if (state.frame === 'A') cam = kA.x;
   else if (state.frame === 'B') cam = kB.x;
-  else cam = 0;
+  else {
+    var want = followTarget(W);
+    cam = dt > 0 ? cam + (want - cam) * (1 - Math.exp(-dt / FOLLOW_TAU)) : want;
+  }
 
   c.fillStyle = PAL.sky; c.fillRect(0, 0, W, H);
   drawClouds(c, W, dt);
@@ -622,7 +660,7 @@ function drawScene(dt){
 }
 
 function drawSceneRoad(c, W, H, kA, kB, fk, vis){
-  var orgX = W * 0.2;                       /* 坐标原点在动画区左侧 1/5 处 */
+  var orgX = W * ORGX_RATIO;           /* 坐标原点在动画区左侧 1/5 处 */
   var roadTop = H * 0.60, roadBot = H * 0.78;
   function sx(wx){ return orgX + (wx - cam) * ppm; }
 
@@ -672,7 +710,7 @@ function drawSceneRoad(c, W, H, kA, kB, fk, vis){
   /* 里程标（世界坐标，每 50 m） */
   var m0 = Math.floor((cam - orgX/ppm) / 50) * 50;
   var m1 = Math.ceil((cam + (W-orgX)/ppm) / 50) * 50;
-  c.font = '17px ' + FONT; c.textAlign = 'center'; c.textBaseline = 'top';
+  c.font = '17px ' + FONT_MATH; c.textAlign = 'center'; c.textBaseline = 'top';
   for (var m = m0; m <= m1; m += 50){
     var mpx = sx(m);
     if (mpx < -40 || mpx > W + 40) continue;
@@ -803,8 +841,8 @@ function drawGraph(cv, ctx, kind, dt){
   function px(tv){ return pl + (tv - t0)/(t1 - t0) * pw; }
   function py(yv){ return pt + ph - (yv - yLo)/(yHi - yLo) * ph; }
 
-  /* 网格与刻度 */
-  ctx.font = '19px ' + FONT;
+  /* 网格与刻度（刻度数字用数学字体，与轴名、HTML 区公式统一） */
+  ctx.font = '19px ' + FONT_MATH;
   var ts2 = niceStep(t1 - t0, 6), ys = niceStep(yHi - yLo, 5);
   var tv, yv;
   ctx.strokeStyle = PAL.gGrid; ctx.lineWidth = 1;
@@ -829,16 +867,31 @@ function drawGraph(cv, ctx, kind, dt){
     if (Math.abs(yv) < ys*0.01) continue;   /* 0 已在轴上，不重复标 */
     ctx.fillText(fmt(yv, ys < 1 ? 1 : 0), pl - 8, py(yv));
   }
-  /* 轴名（准 TeX） */
+  /* 轴名（准 TeX）—— 变量用常规字重，与 HTML 区公式一致，不再加粗 */
   ctx.textBaseline = 'top';
   var segs = kind === 'x'
-    ? [{t:'x', i:1, b:1, s:19, c:PAL.gText}, {t:' / m', s:19, c:PAL.gText}]
-    : [{t:'v', i:1, b:1, s:19, c:PAL.gText}, {t:' / (m/s)', s:19, c:PAL.gText}];
+    ? [{t:'x', i:1, s:19, c:PAL.gText}, {t:' / m', s:19, c:PAL.gText}]
+    : [{t:'v', i:1, s:19, c:PAL.gText}, {t:' / (m/s)', s:19, c:PAL.gText}];
   if (state.frame !== 'ground') segs.push({t:'（相对' + frameName() + '）', s:17, c:PAL.gTick});
   ctx.textBaseline = 'bottom';
-  drawSeg(ctx, pl + pw, pt + ph - 8, [{t:'t', i:1, b:1, s:19, c:PAL.gText}, {t:' / s', s:19, c:PAL.gText}], 'right');
+  drawSeg(ctx, pl + pw, pt + ph - 8, [{t:'t', i:1, s:19, c:PAL.gText}, {t:' / s', s:19, c:PAL.gText}], 'right');
+  /* 纵轴名放在纵轴右侧（绘图区内左上方），不再占用轴左侧空间。
+     右上角图例占用绘图区最右侧约 68px，空间不足时先自动缩小字号（最小 14px）；
+     仍放不下则让「（相对…）」后缀让位 —— 该参考系提示在卡片标题下已标注，不丢信息。 */
   ctx.textBaseline = 'top';
-  drawSeg(ctx, 6, 4, segs, 'left');
+  var nameAvail = pw - 106, nameFs = 19, nq, nw, baseS = [];
+  for (nq = 0; nq < segs.length; nq++) baseS[nq] = segs[nq].s || 19;
+  for (; nameFs >= 14; nameFs--){
+    nw = 0;
+    for (nq = 0; nq < segs.length; nq++) segs[nq].s = Math.max(13, Math.round(baseS[nq] * nameFs / 19));
+    for (nq = 0; nq < segs.length; nq++){ ctx.font = segFont(segs[nq]); nw += ctx.measureText(segs[nq].t).width; }
+    if (nw <= nameAvail || nameFs <= 14) break;
+  }
+  if (nw > nameAvail && segs.length > 2){
+    segs.length = 2;
+    segs[0].s = 18; segs[1].s = 18;
+  }
+  drawSeg(ctx, pl + 10, pt + 4, segs, 'left');
 
   if (series.length === 0){
     ctx.fillStyle = PAL.mark; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -989,12 +1042,12 @@ function updateReadout(){
 
 /* ---------------- 交互绑定 ---------------- */
 function clearGhosts(){ state.ghosts = []; }
-function paramChanged(){
-  state.t = clamp(state.t, 0, state.tMax);
-  clearGhosts();
-  state.revealed = false; state.revealT = 0;
-  /* 刻意不调用 snapScale：调节初始条件不应改变画面缩放 */
-}
+  function paramChanged(){
+    state.t = clamp(state.t, 0, state.tMax);
+    clearGhosts();
+    state.revealed = false; state.revealT = 0;
+    /* 刻意不调用 snapScale：调节初始条件不应改变画面缩放 */
+  }
 function bindPair(idN, idR, apply){
   var n = $(idN), r = $(idR);
   function fromN(){ var v = parseFloat(n.value); if (isFinite(v)){ r.value = v; apply(v); paramChanged(); } }
@@ -1043,6 +1096,7 @@ function doReset(){
   $('playBtn').textContent = '▶ 播放';
   clearGhosts();
   state.revealed = false; state.revealT = 0;
+  resetCam();
 }
 
 /* 参考系切换 */
@@ -1052,6 +1106,7 @@ function setFrame(f){
   $('btnFG').classList.toggle('on', f === 'ground');
   $('btnFA').classList.toggle('on', f === 'A');
   $('btnFB').classList.toggle('on', f === 'B');
+  resetCam();                          /* 换视角时镜头回到该参考系的默认位置 */
 }
 $('btnFG').addEventListener('click', function(){ setFrame('ground'); });
 $('btnFA').addEventListener('click', function(){ setFrame('A'); });
@@ -1076,9 +1131,9 @@ function syncInputs(){
   $('tmax').value = state.tMax; $('tmaxs').value = state.tMax;
 }
 var PRESETS = [
-  { name:'追击一 · 加速追匀速',  A:{x0:0, v0:0,  a:2,  stop:false}, B:{x0:40, v0:10, a:0, stop:false}, tMax:16 },
-  { name:'追击二 · 减速未追上',  A:{x0:0, v0:20, a:-2, stop:true }, B:{x0:50, v0:10, a:0, stop:false}, tMax:12 },
-  { name:'追击三 · 二次相遇',    A:{x0:0, v0:30, a:-3, stop:true }, B:{x0:30, v0:10, a:0, stop:false}, tMax:14 }
+  { name:'情境1 · 加速追匀速',  A:{x0:0, v0:0,  a:2,  stop:false}, B:{x0:40, v0:10, a:0, stop:false}, tMax:16 },
+  { name:'情境2 · 减速未追上',  A:{x0:0, v0:20, a:-2, stop:true }, B:{x0:50, v0:10, a:0, stop:false}, tMax:12 },
+  { name:'情境3 · 二次相遇',    A:{x0:0, v0:30, a:-3, stop:true }, B:{x0:30, v0:10, a:0, stop:false}, tMax:14 }
 ];
 function applyPreset(idx){
   var p = PRESETS[idx];
@@ -1255,6 +1310,7 @@ function frame(ts){
 }
 
 resize();
+syncInputs();                  /* 启动时把 state 的初始参数写回输入框，避免 HTML 静态初值与 state 不同步 */
 drawAll(0);
 requestAnimationFrame(frame);
 /* 字体与布局稳定后重算一次动画区高度 */
