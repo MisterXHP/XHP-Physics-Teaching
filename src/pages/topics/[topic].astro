@@ -23,49 +23,44 @@ const pick = (arr: { data: { topic: string; date?: Date } }[]) =>
   sortByDateDesc(arr.filter((x) => x.data.topic === topic.name));
 
 const groups = [
-  { label: '交互动画', href: 'play', icon: 'play', items: pick(animations) },
-  { label: '教学讲义', href: 'lectures', icon: 'doc', items: pick(lectures) },
-  { label: '实验演示', href: 'experiments', icon: 'flask', items: pick(experiments) },
-  { label: '资源下载', href: 'downloads', icon: 'download', items: pick(downloads) },
+  { label: '交互动画', lib: 'animations', href: 'play', icon: 'play', items: pick(animations) },
+  { label: '教学讲义', lib: 'lectures', href: 'lectures', icon: 'doc', items: pick(lectures) },
+  { label: '演示实验', lib: 'experiments', href: 'experiments', icon: 'flask', items: pick(experiments) },
+  { label: '其它资源', lib: 'downloads', href: 'downloads', icon: 'download', items: pick(downloads) },
 ];
 
-const total = groups.reduce((n, g) => n + g.items.length, 0);
+const shown = groups.filter((g) => g.items.length > 0);
 ---
-<Base title={topic.name} description={topic.desc}>
-  <header class="list-head">
-    <h1 class="page-title">{topic.name}</h1>
-    <p class="page-lead">{topic.desc}</p>
+<Base title={topic.name} description={topic.desc} back backHref="history">
+  <header class="list-head topic-head">
+    {/* 默认标题（无来源参数时显示） */}
+    <h1 class="page-title topic-title-topic">{topic.name}</h1>
+    {/* 带来源参数时，改为「区域 · 主题」样式（由 CSS 切换显示） */}
+    {shown.map((g) => (
+      <h1 class="page-title topic-title-lib" data-lib={g.lib}>{g.label} · {topic.name}</h1>
+    ))}
   </header>
 
-  <nav class="topic-bar">
-    {topics.map((t) => (
-      <a href={`${base}topics/${t.slug}/`} class={t.slug === topic.slug ? 'active' : ''}>{t.name}</a>
-    ))}
-  </nav>
-
-  {total === 0 ? (
+  {shown.length === 0 ? (
     <p class="notice">这个主题下暂时还没有内容。</p>
   ) : (
-    groups.map(
-      (g) =>
-        g.items.length > 0 && (
-          <>
-            <h2 class="section-title">{g.label}</h2>
-            <div class="grid">
-              {g.items.map((it) => (
-                <Card
-                  href={`${base}${g.href}/${it.id}/`}
-                  icon={g.icon}
-                  external={g.href === 'play'}
-                  label={topic.name}
-                  title={it.data.title}
-                  desc={it.data.summary}
-                  meta={formatDate(it.data.date)}
-                />
-              ))}
-            </div>
-          </>
-        )
-    )
+    shown.map((g) => (
+      <section data-lib={g.lib}>
+        <h2 class="section-title topic-group-title">{g.label} · {topic.name}</h2>
+        <div class="grid">
+          {g.items.map((it) => (
+            <Card
+              href={`${base}${g.href}/${it.id}/`}
+              icon={g.icon}
+              external={g.href === 'play'}
+              label={topic.name}
+              title={it.data.title}
+              desc={it.data.summary}
+              meta={formatDate(it.data.date)}
+            />
+          ))}
+        </div>
+      </section>
+    ))
   )}
 </Base>

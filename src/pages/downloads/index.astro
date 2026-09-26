@@ -10,13 +10,13 @@ const items = sortByDateDesc(await getCollection('downloads'));
 ---
 <Base title="资源下载">
   <header class="list-head">
-    <h1 class="page-title">资源下载</h1>
+    <h1 class="page-title">其它资源</h1>
     <p class="page-lead">教案、学案、课件等可下载的教学资料。</p>
   </header>
 
   <nav class="topic-bar">
     {topics.map((t) => (
-      <a href={`${base}topics/${t.slug}/`}>{t.name}</a>
+      <a href={`${base}topics/${t.slug}/?from=downloads`}>{t.name}</a>
     ))}
   </nav>
 

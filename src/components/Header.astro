@@ -13,10 +13,10 @@ const home = base.replace(/\/$/, '');
 
 const links = [
   { href: base, label: '首页' },
-  { href: `${base}animations/`, label: '动画库' },
-  { href: `${base}lectures/`, label: '讲义库' },
-  { href: `${base}experiments/`, label: '实验库' },
-  { href: `${base}downloads/`, label: '下载库' },
+  { href: `${base}animations/`, label: '交互动画' },
+  { href: `${base}lectures/`, label: '教学讲义' },
+  { href: `${base}experiments/`, label: '演示实验' },
+  { href: `${base}downloads/`, label: '其它资源' },
   { href: `${base}search/`, label: '搜索' },
 ];
 
@@ -28,10 +28,17 @@ function isActive(href: string): boolean {
 <header class="site-header">
   <div class="container site-header__inner">
     {back && (
-      <a class="back-btn" href={backHref ?? `${base}animations/`} aria-label="返回">
-        <Icon name="back" size={18} />
-        <span>返回</span>
-      </a>
+      backHref === 'history' ? (
+        <a class="back-btn" href="#" onclick="history.back();return false;" aria-label="返回上一页">
+          <Icon name="back" size={18} />
+          <span>返回</span>
+        </a>
+      ) : (
+        <a class="back-btn" href={backHref ?? `${base}animations/`} aria-label="返回">
+          <Icon name="back" size={18} />
+          <span>返回</span>
+        </a>
+      )
     )}
     <a class="brand" href={base}>
       <Icon name="atom" size={22} />

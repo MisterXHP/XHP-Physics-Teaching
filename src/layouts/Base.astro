@@ -9,10 +9,14 @@ const SITE = '大熊印象 · 物理星河';
 interface Props {
   title?: string;
   description?: string;
+  back?: boolean;
+  backHref?: string;
 }
 const {
   title,
   description = '熊和平（大熊印象）的中学物理交互动画、教学讲义、实验演示与资源下载。',
+  back = false,
+  backHref,
 } = Astro.props;
 
 const fullTitle = title ? `${title} · ${SITE}` : SITE;
@@ -36,11 +40,15 @@ const base = import.meta.env.BASE_URL;
         } catch (e) {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
+        try {
+          var m = /[?&]from=([a-z]+)/.exec(location.search);
+          if (m) document.documentElement.setAttribute('data-from', m[1]);
+        } catch (e) {}
       })();
     </script>
   </head>
   <body>
-    <Header />
+    <Header back={back} backHref={backHref} />
     <main class="container">
       <slot />
     </main>

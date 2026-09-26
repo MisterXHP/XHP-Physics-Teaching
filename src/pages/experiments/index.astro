@@ -10,13 +10,13 @@ const items = sortByDateDesc(await getCollection('experiments'));
 ---
 <Base title="实验演示">
   <header class="list-head">
-    <h1 class="page-title">实验演示</h1>
+    <h1 class="page-title">演示实验</h1>
     <p class="page-lead">实验过程的视频与动画演示，帮助学生看清现象背后的物理。</p>
   </header>
 
   <nav class="topic-bar">
     {topics.map((t) => (
-      <a href={`${base}topics/${t.slug}/`}>{t.name}</a>
+      <a href={`${base}topics/${t.slug}/?from=experiments`}>{t.name}</a>
     ))}
   </nav>
 

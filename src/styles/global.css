@@ -233,7 +233,7 @@ main {
 .page-title {
   font-size: 30px;
   font-weight: 600;
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   letter-spacing: 0.5px;
 }
 .page-lead {
@@ -241,8 +241,10 @@ main {
   margin: 0 0 32px;
   max-width: 720px;
 }
+/* 页头块：顶部留白 = 首页 hero 的 28px（main 另有 40px），全站标题上间距统一为 68px */
 .list-head {
   text-align: center;
+  padding: 28px 0 0;
 }
 .list-head .page-lead {
   margin-left: auto;
@@ -552,7 +554,42 @@ main {
   --pagefind-ui-border-radius: 8px;
 }
 
-/* ===== 动画播放页（保留页眉 + 满屏动画） ===== */
+/* ===== 主题页：按来源库过滤（URL 带 ?from=xxx 时只显示对应库的内容） ===== */
+html[data-from='animations'] [data-lib]:not([data-lib='animations']),
+html[data-from='lectures'] [data-lib]:not([data-lib='lectures']),
+html[data-from='experiments'] [data-lib]:not([data-lib='experiments']),
+html[data-from='downloads'] [data-lib]:not([data-lib='downloads']) {
+  display: none;
+}
+
+/* ===== 主题页：大标题（无副标题，上下留白与首页 hero 对齐） ===== */
+.topic-head {
+  margin: 0 0 48px;
+}
+.topic-head .page-title {
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* ===== 主题页：大标题按来源切换（有 ?from= 时显示「区域 · 主题」） ===== */
+.topic-title-lib {
+  display: none;
+}
+html[data-from] .topic-title-topic {
+  display: none;
+}
+html[data-from='animations'] .topic-title-lib[data-lib='animations'],
+html[data-from='lectures'] .topic-title-lib[data-lib='lectures'],
+html[data-from='experiments'] .topic-title-lib[data-lib='experiments'],
+html[data-from='downloads'] .topic-title-lib[data-lib='downloads'] {
+  display: block;
+}
+/* 有来源时隐藏分区标题（信息已在页面大标题里体现） */
+html[data-from] .topic-group-title {
+  display: none;
+}
+
+/* ===== 全屏播放页（保留页眉 + 满屏动画） ===== */
 .play-body {
   margin: 0;
   height: 100vh;

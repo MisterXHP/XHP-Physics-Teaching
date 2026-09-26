@@ -16,7 +16,7 @@ const items = sortByDateDesc(await getCollection('animations'));
 
   <nav class="topic-bar">
     {topics.map((t) => (
-      <a href={`${base}topics/${t.slug}/`}>{t.name}</a>
+      <a href={`${base}topics/${t.slug}/?from=animations`}>{t.name}</a>
     ))}
   </nav>
 
