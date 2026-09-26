@@ -195,8 +195,8 @@ input[type=checkbox]{accent-color:var(--accent)}
 
       <div class="row">
         <span style="font-size:17px">总时间 $t$</span>
-        <input type="number" id="tmax" step="0.5" min="1" max="30" value="16" style="width:74px;font-size:17px;padding:3px 5px;border:1px solid var(--btnline);border-radius:6px;background:var(--inputbg);color:var(--text)">
-        <input type="range" id="tmaxs" min="1" max="30" step="0.5" value="16" style="width:120px">
+        <input type="number" id="tmax" step="0.5" min="1" max="60" value="20" style="width:74px;font-size:17px;padding:3px 5px;border:1px solid var(--btnline);border-radius:6px;background:var(--inputbg);color:var(--text)">
+        <input type="range" id="tmaxs" min="1" max="60" step="0.5" value="20" style="width:120px">
         <span style="font-size:17px">图像对象</span>
         <select id="objSel">
           <option value="A">A 车</option>
@@ -323,7 +323,7 @@ var THEMES = {
 };
 var state = {
   theme:'dark',
-  t:0, tMax:16, playing:false, speed:1,
+  t:0, tMax:20, playing:false, speed:1,
   frame:'ground',            /* ground | A | B */
   strobe:false, showB:true,
   graphObj:'both',           /* A | B | both | mark */
@@ -375,7 +375,7 @@ function relK(k, fk){ return {x:k.x - fk.x, v:k.v - fk.v, a:k.a - fk.a}; }
 
 function visibleCars(){
   var v = ['A'];
-  if (state.showB && state.frame !== 'A') v.push('B');
+  if (state.showB) v.push('B');   /* A 参考系下 B 仍按勾选显示（相对 A 运动），移除原 frame!=='A' 守卫 */
   return v;
 }
 
@@ -465,7 +465,7 @@ if (typeof window !== 'undefined' && window.addEventListener){
    A/B 车系：镜头锁死对应车。
    比例尺只在加载、切换预设、按「适配视图」时整定；调节 v₀/a/x₀ 不改缩放；
    动画区支持滚轮缩放。 */
-var cam = 0, ppm = 6, fitPpm = 6;
+var cam = 0, ppm = 6, fitPpm = 6, CAM_LOCKED = false;
 /* 画面原点所在的横向比例（与 drawSceneRoad 的 orgX 共用，避免两处改不同步） */
 var ORGX_RATIO = 0.2;
 /* A 车自动跟随：车中心在画面内的安全区间（距左 / 右边缘保留的像素）。
@@ -499,20 +499,27 @@ function zoomBy(f){
 }
 
 /* ---------------- 相机：地面系下的 A 车自动跟随 ----------------
-   地面系默认锁死原点（地面静止）。当 A 车逼近画面边缘时相机被「推」着走，
-   使 A 车始终停在安全区内 —— 只在越界时才动，因此不会来回抖动；
-   车回到安全区后相机停住不再回退，避免反复拉扯。
-   A / B 参考系本来就锁定对应车，无需再跟随。 */
+   地面系默认锁死原点（地面静止，原点在动画区左侧 1/5 处）。
+   当 A 车屏幕位置到达「距右 1/4」（0.75W）时启动追踪，此后把 A 车锚定在画面正中（0.5W）；
+   明显退回左侧（静止位置 < 0.55W）才解除锁定，避免临界抖动。
+   未锁定且车逼近左边缘时，相机左移保住车身。A / B 参考系本就锁定对应车，无需跟随。 */
 function followTarget(W){
-  var orgX = W * ORGX_RATIO, minS = FOLLOW_PAD_L, maxS = W - FOLLOW_PAD_R;
-  var sxA = orgX + (kin(state.cars.A, state.t).x - cam) * ppm;
-  if (sxA > maxS) return cam + (sxA - maxS) / ppm;      /* 车太靠右 → 相机右移 */
-  if (sxA < minS) return cam - (minS - sxA) / ppm;      /* 车太靠左 → 相机左移 */
-  return cam;                                            /* 仍在安全区内 → 不动 */
+  var orgX = W * ORGX_RATIO;
+  var ax = kin(state.cars.A, state.t).x;
+  var sxA = orgX + (ax - cam) * ppm;             /* A 当前屏幕位置 */
+  var restSxA = orgX + ax * ppm;                 /* 相机静止时 A 的屏幕位置（判定是否到右 1/4 用） */
+  /* 到达动画区右侧 1/4（= 0.75W）时锁定；明显退回左侧（< 0.55W）才解除，避免临界抖动 */
+  if (restSxA > W * 0.75) CAM_LOCKED = true;
+  else if (restSxA < W * 0.55) CAM_LOCKED = false;
+  if (CAM_LOCKED) return ax - (W * 0.75 - orgX) / ppm;  /* 锁定：A 锚定在画面右侧 1/4（0.75W）处 */
+  /* 未锁定：相机静止（原点留在 1/5 处）；仅车逼近左边缘时左移保住车身 */
+  if (sxA < FOLLOW_PAD_L) return cam - (FOLLOW_PAD_L - sxA) / ppm;
+  return cam;
 }
 /* 重置镜头：直接到位、不做平滑（适配视图 / 重置 / 切换参考系时用） */
 function resetCam(){
   var W = cvS.clientWidth || 900;
+  CAM_LOCKED = false;                                  /* 重置 / 切参考系时解除 A 车追踪锁定 */
   if (state.frame === 'A') cam = kin(state.cars.A, state.t).x;
   else if (state.frame === 'B') cam = kin(state.cars.B, state.t).x;
   else {
@@ -1061,7 +1068,7 @@ bindPair('aa','aas',   function(v){ state.cars.A.a = v; });
 bindPair('bx0','bx0s', function(v){ state.cars.B.x0 = v; });
 bindPair('bv0','bv0s', function(v){ state.cars.B.v0 = v; });
 bindPair('ba','bas',   function(v){ state.cars.B.a = v; });
-bindPair('tmax','tmaxs', function(v){ state.tMax = clamp(v, 1, 30); });
+bindPair('tmax','tmaxs', function(v){ state.tMax = clamp(v, 1, 60); });
 $('astop').addEventListener('change', function(){ state.cars.A.stop = this.checked; paramChanged(); });
 $('bstop').addEventListener('change', function(){ state.cars.B.stop = this.checked; paramChanged(); });
 $('strobeChk').addEventListener('change', function(){ state.strobe = this.checked; });
