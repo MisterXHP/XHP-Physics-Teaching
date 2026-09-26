@@ -109,4 +109,19 @@ function topicName(name: string) {
     margin-top: 24px;
     flex-wrap: wrap;
   }
+  /* 窄屏下两端对齐会把中文行内字距拉得很散，改回左对齐 */
+  @media (max-width: 640px) {
+    .hero {
+      padding: 16px 0 8px;
+    }
+    .hero__lead {
+      font-size: 16px;
+      margin-top: 12px;
+      text-align: left;
+      text-justify: auto;
+    }
+    .hero__actions {
+      margin-top: 20px;
+    }
+  }
 </style>

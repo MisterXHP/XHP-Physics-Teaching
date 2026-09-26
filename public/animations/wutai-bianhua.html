@@ -191,6 +191,10 @@
     background:var(--tipbg);border:1px solid var(--tipline);color:var(--tipfg);border-radius:10px;
   }
 
+  /* 彩色分段条每段只占 1/8 宽，窄屏时放不下段内文字（会被裁成半个词）。
+     窄屏改为「纯色带 + 下方图例」：信息一条不丢，桌面端图例隐藏、保持原样。 */
+  .seglegen{display:none;}
+
   @media (max-width:1000px){
     .cols{grid-template-columns:1fr;}
   }
@@ -198,6 +202,26 @@
     .bars{grid-template-columns:1fr;}
     .info-top{gap:12px;}
     header.top{align-items:flex-start;}
+  }
+  /* ===== 窄屏（手机）自适应：只在小屏生效 ===== */
+  @media (max-width:760px){
+    body{padding:12px 12px 14px;}
+    header.top h1{font-size:23px;letter-spacing:.5px;}
+    header.top .sub{font-size:15px;}
+    .seg{font-size:0;}
+    .seglegen{display:flex;flex-wrap:wrap;gap:5px 12px;margin:7px 0 2px;
+              font-size:13px;color:var(--text2);}
+    .seglegen span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+    .seglegen i{width:10px;height:10px;border-radius:3px;flex:none;}
+    .mark{font-size:12px;}
+    .info{padding:14px 16px 16px;}
+    .badge b{font-size:24px;}
+    .readout{gap:6px;padding:10px 12px;}
+    .readout b{font-size:18px;}
+    .reftab{gap:6px;font-size:13px;}
+    .reftab div{padding:6px 10px;}
+    .fields dt,.fields dd{font-size:16px;}
+    .tip{font-size:15px;}
   }
 </style>
 </head>
@@ -441,7 +465,7 @@ var PHASES = {
     tip:'与固态相比：小球变为青绿色，位置不再固定，能在整个液层里来回迁移，液面也铺成水平——这就是流动性。'
   },
   boiling:{
-    name:'液气共存（剧烈汽化中）', hint:'T ＝ 沸点', color:'#f59e0b',
+    name:'液气共存（汽化中）', hint:'T ＝ 沸点', color:'#f59e0b',
     space:52, force:30, sv:'迅速增大', fv:'急剧减小',
     fSpace:'脱离液面的微粒（橙色小球）间距急剧增大，可达原来的约十倍（约 10⁻⁹ m 量级）。',
     fForce:'分子间作用力随间距增大而急剧减小，脱离液面后变得十分微弱（除碰撞瞬间外常可忽略）。',
@@ -1071,7 +1095,7 @@ function drawOverlay(bg){
      原来放在底部左侧的"共存区 · 吸热但温度不变"已删除 —— 知识讲解区的
      「能量与温度变化」已有完整说明，动画区不必重复。 */
   if (box.h > 140){
-    var note = '示意模型：粒子大小与间距非真实比例';
+    var note = '示意模型：非真实比例';
     ctx.font = '12px '+FONT;                 // 字号单位用 px：12pt ≈ 16px，会偏大
     var nw = ctx.measureText(note).width;
     var pL = box.x+box.w-16-nw;              // 文字左边界（右端贴容器内边距 16px）
@@ -1175,6 +1199,22 @@ function buildScaleUI(){
     s.textContent = SEG_STYLE[i].t;
     scalebox.appendChild(s);
   }
+  /* 窄屏图例：彩色段放不下文字时（CSS 媒体查询控制显示），在这里补一份文字说明 */
+  var oldLg = document.getElementById('seglegen');
+  if (oldLg && oldLg.parentNode) oldLg.parentNode.removeChild(oldLg);
+  var lg = document.createElement('div');
+  lg.className = 'seglegen';
+  lg.id = 'seglegen';
+  for (var q = 0; q < SEG_STYLE.length; q++){
+    if (!SEG_STYLE[q].t) continue;
+    var chip = document.createElement('span');
+    var dot = document.createElement('i');
+    dot.style.background = SEG_STYLE[q].c;
+    chip.appendChild(dot);
+    chip.appendChild(document.createTextNode(SEG_STYLE[q].t));
+    lg.appendChild(chip);
+  }
+  scalebox.parentNode.insertBefore(lg, scalebox.nextSibling);
   var marks = [
     {f:2.5,  t:sub.Tm,   label:'熔点'},
     {f:4.5,  t:sub.Tb,   label:'沸点'},

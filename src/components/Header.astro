@@ -31,12 +31,12 @@ function isActive(href: string): boolean {
       backHref === 'history' ? (
         <a class="back-btn" href="#" onclick="history.back();return false;" aria-label="返回上一页">
           <Icon name="back" size={18} />
-          <span>返回</span>
+          <span class="back-btn__text">返回</span>
         </a>
       ) : (
         <a class="back-btn" href={backHref ?? `${base}animations/`} aria-label="返回">
           <Icon name="back" size={18} />
-          <span>返回</span>
+          <span class="back-btn__text">返回</span>
         </a>
       )
     )}
@@ -44,12 +44,23 @@ function isActive(href: string): boolean {
       <Icon name="atom" size={22} />
       <span>大熊印象 · 物理星河</span>
     </a>
-    <nav class="nav">
+    <nav class="nav" id="site-nav">
       {links.map((l) => (
         <a href={l.href} class={isActive(l.href) ? 'active' : ''}>{l.label}</a>
       ))}
     </nav>
     <button class="theme-toggle" id="theme-toggle" aria-label="切换深浅主题" title="切换深浅主题">🌙</button>
+    <button
+      class="menu-toggle"
+      id="menu-toggle"
+      type="button"
+      aria-label="打开导航菜单"
+      aria-controls="site-nav"
+      aria-expanded="false"
+    >
+      <span class="menu-toggle__open"><Icon name="menu" size={22} /></span>
+      <span class="menu-toggle__close"><Icon name="close" size={22} /></span>
+    </button>
   </div>
 </header>
 <script>
@@ -67,24 +78,29 @@ function isActive(href: string): boolean {
     render();
   });
   render();
+
+  /* 窄屏导航抽屉 */
+  const nav = document.getElementById('site-nav');
+  const menuBtn = document.getElementById('menu-toggle');
+  function setMenu(open: boolean) {
+    if (!nav || !menuBtn) return;
+    nav.classList.toggle('open', open);
+    menuBtn.classList.toggle('is-open', open);
+    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    menuBtn.setAttribute('aria-label', open ? '关闭导航菜单' : '打开导航菜单');
+  }
+  menuBtn?.addEventListener('click', () => setMenu(!nav?.classList.contains('open')));
+  nav?.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('a')) setMenu(false);
+  });
+  document.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    if (nav?.classList.contains('open') && !t.closest('.site-header')) setMenu(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setMenu(false);
+  });
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 880) setMenu(false);
+  });
 </script>
-<style>
-  .back-btn {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--bg-2);
-    color: var(--text);
-    font-size: 14px;
-    white-space: nowrap;
-  }
-  .back-btn:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    text-decoration: none;
-  }
-</style>

@@ -213,6 +213,54 @@ img {
   border-color: var(--primary);
 }
 
+/* ===== 返回按钮 / 汉堡菜单按钮 =====
+   注意：这两个写在全局样式里（不是 Header.astro 的 scoped <style>），
+   否则 astro 给 scoped 选择器加的属性选择器会盖掉下面的响应式 display 规则。 */
+.back-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.back-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  text-decoration: none;
+}
+.menu-toggle {
+  display: none;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.menu-toggle:hover {
+  border-color: var(--primary);
+}
+.menu-toggle__close {
+  display: none;
+}
+.menu-toggle.is-open .menu-toggle__open {
+  display: none;
+}
+.menu-toggle.is-open .menu-toggle__close {
+  display: inline-flex;
+}
+
 /* ===== 页脚 ===== */
 .site-footer {
   margin-top: 64px;
@@ -522,24 +570,151 @@ main {
 }
 
 /* ===== 响应式 ===== */
-@media (max-width: 640px) {
+
+/* --- 平板 / 手机：顶栏收成一行（返回 + 品牌 + 主题 + 菜单），导航折进抽屉 --- */
+@media (max-width: 880px) {
   .site-header__inner {
-    height: auto;
-    flex-wrap: wrap;
-    padding: 10px 0;
+    height: 58px;
+    gap: 10px;
+  }
+  .brand {
+    font-size: 16px;
+    margin-right: auto;
   }
   .nav {
-    margin-left: 0;
-    width: 100%;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    margin: 0;
+    padding: 8px 16px 14px;
+    background: color-mix(in srgb, var(--bg) 97%, transparent);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 14px 24px rgba(0, 0, 0, 0.22);
+  }
+  .nav.open {
+    display: flex;
+  }
+  .nav a {
+    display: flex;
+    align-items: center;
+    min-height: 46px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+  .menu-toggle {
+    display: inline-flex;
+  }
+  .theme-toggle {
+    width: 44px;
+    height: 44px;
+  }
+  .back-btn {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+  .topic-bar a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 14px;
+  }
+  .section-title a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 4px;
+  }
+}
+
+/* --- 手机 --- */
+@media (max-width: 640px) {
+  .container {
+    padding: 0 16px;
+  }
+  .list-head {
+    padding: 16px 0 0;
   }
   .page-title {
     font-size: 24px;
   }
+  .page-lead {
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+  .topic-head {
+    margin-bottom: 36px;
+  }
+  .topic-bar {
+    gap: 6px;
+    margin-bottom: 22px;
+  }
+  .topic-bar a {
+    font-size: 13px;
+    padding: 0 12px;
+  }
+  .section-title {
+    margin: 36px 0 14px;
+    font-size: 18px;
+  }
   .grid {
     grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .card {
+    padding: 16px 16px;
   }
   .embed-frame iframe {
     height: 70vh;
+  }
+  .site-footer {
+    font-size: 13px;
+  }
+}
+
+/* --- 超窄屏：返回按钮只留图标，给品牌文字腾地方 --- */
+@media (max-width: 430px) {
+  .back-btn {
+    width: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+  .back-btn__text {
+    display: none;
+  }
+  .brand {
+    font-size: 15px;
+  }
+}
+
+/* --- 极窄屏（≤400px）：顶栏按钮与间距一并收紧 --- */
+@media (max-width: 400px) {
+  .site-header__inner {
+    gap: 6px;
+  }
+  .back-btn,
+  .theme-toggle,
+  .menu-toggle {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+  .brand {
+    font-size: 14px;
+  }
+}
+
+/* --- 超窄屏（≤340px）：有返回按钮时品牌只留图标，避免顶栏横向溢出 --- */
+@media (max-width: 340px) {
+  .back-btn ~ .brand span {
+    display: none;
   }
 }
 
@@ -593,6 +768,7 @@ html[data-from] .topic-group-title {
 .play-body {
   margin: 0;
   height: 100vh;
+  height: 100dvh; /* 手机端地址栏伸缩时用动态视口高度，避免高度跳变 */
   overflow: hidden;
   display: flex;
   flex-direction: column;

@@ -91,6 +91,44 @@ input[type=checkbox]{accent-color:var(--accent)}
   .bottomRow{margin-top:10px}
   .foot{margin-top:10px;padding-top:8px}
 }
+
+/* ===== 窄屏（手机）自适应：只在小屏生效，桌面端不受影响 ===== */
+@media (max-width:760px){
+  /* 页头从「左右两端」改成上下堆叠：标题不再被主题按钮挤成两行 */
+  .top{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:10px}
+  .titles h1{font-size:21px;letter-spacing:.5px}
+  .titles .sub{font-size:14.5px}
+  .readGrid,.rRow{font-size:16px;gap:2px 10px}
+  .bar{font-size:14.5px}
+  .tLabel{min-width:0;font-size:15px}
+  .btn{font-size:15px;padding:7px 12px}
+  .gTitle{flex-wrap:wrap;gap:4px}
+}
+/* 参数行原本是「标签 + 数字框74 + 滑块80 + 单位58」固定宽度，合计约 340px。
+   车参数卡两列并排时（≲840px）可用宽度不足，会撑破卡片；这里改为
+   标签/数字/单位一行、滑块单独占满下一行，从根本上消除横向溢出。 */
+@media (max-width:840px){
+  .pline{flex-wrap:wrap;gap:6px}
+  .pline label{order:1;min-width:0}
+  .pline input[type=number]{order:2;width:66px}
+  .pline .unit{order:3;min-width:0}
+  .pline input[type=range]{order:4;flex:1 1 100%;min-width:0}
+  .carBox{min-width:0}
+}
+@media (max-width:560px){
+  body{padding:12px 12px 14px}
+  .card{padding:9px 11px}
+  .pline label,.pline input[type=number],.pline .unit{font-size:16px}
+  .readGrid,.rRow{font-size:15px}
+  .foot{font-size:14px}
+}
+/* 超窄屏（360px 级安卓机）：读数表 6 列挤不下，收紧列距并允许数值换行 */
+@media (max-width:420px){
+  .readGrid{grid-template-columns:12px max-content repeat(3, minmax(0, auto)) 1fr;gap:2px 8px}
+  .rRow{font-size:14px;gap:2px 8px}
+  .rRow span.v{white-space:normal}
+  .tip, .tips{font-size:15px}
+}
 </style>
 </head>
 <body>
@@ -626,7 +664,12 @@ function drawSceneRoad(c, W, H, kA, kB, fk, vis){
     if (mpx < -40 || mpx > W + 40) continue;
     c.fillStyle = PAL.marker;
     c.fillRect(mpx-1.5, roadBot-14, 3, 14);
-    c.fillText(m + ' m', mpx, roadBot + 5);
+    /* 文字居中会越过画布左右边界被裁掉（窄屏尤其明显）——放不下就整条跳过，
+       而不是画一半，否则「150 m」会显示成「15」，反而误导 */
+    var mLabel = m + ' m';
+    var mHalf = c.measureText(mLabel).width / 2;
+    if (mpx - mHalf < 2 || mpx + mHalf > W - 2) continue;
+    c.fillText(mLabel, mpx, roadBot + 5);
   }
 
   var carY = roadTop + (roadBot - roadTop) * 0.66;
