@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>交互动画 · 光电门原理</title>
+<link rel="stylesheet" href="katex/katex.min.css">
+<style>
+  /* ===== 主题变量 =====
+     深色写在 :root（默认），浅色整组覆盖在 body.light 上。
+     ★ 这里只管 DOM；canvas 不认 CSS 变量，必须另配一套调色板（见脚本里的 THEMES）。 */
+  :root{
+    --bg1:#0d1526;  --bg2:#0a101c;
+    --card:#141d2f; --card2:#0f1726;
+    --line:#263349; --text:#e8eef8; --text2:#96a7c0;
+    --accent:#4d8dff; --accentHov:#3f7ff0;
+    --btn:#1b2740; --btnline:#2c3a55;
+    --track:#2a3752; --bar:#233047;
+    --dash:#d7e3f6; --dd:#b6c5da;
+    --tipbg:#2a2310; --tipline:#4a3d1a; --tipfg:#e8c97a;
+    /* 强调按钮（自动演示 / 暂停演示）：粉红 —— 全页只此一个 */
+    --demo:#ec4899; --demoHov:#db2777;
+    --shadow:0 8px 26px rgba(0,0,0,.38);
+    --radius:16px;
+  }
+  body.light{
+    --bg1:#eef2f6;  --bg2:#e3eaf1;
+    --card:#ffffff; --card2:#f7fafc;
+    --line:#dde3ea; --text:#202730; --text2:#5b6672;
+    --accent:#185fa5; --accentHov:#0e4f8f;
+    --btn:#ffffff; --btnline:#c9d2dc;
+    --track:#d5dce4; --bar:#e6ebf1;
+    --dash:#1f2733; --dd:#3d4855;
+    --tipbg:#fdf6e6; --tipline:#e6d7a8; --tipfg:#8a6d1f;
+    --demo:#db2777; --demoHov:#be185d;
+    --shadow:0 6px 20px rgba(20,32,54,.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 100%);
+    background-attachment:fixed;
+    color:var(--text);
+    font-family:"Times New Roman",Times,"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:17px;
+    padding:14px 20px 14px;
+  }
+  .wrap{width:100%;max-width:1980px;margin:0 auto;}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:12px;}
+  header.top .titles{min-width:0;}
+  header.top h1{font-size:30px;margin:0;letter-spacing:1px;font-weight:700;}
+  header.top .sub{margin:6px 0 0;color:var(--text2);font-size:16px;line-height:1.6;}
+  #themeBtn{white-space:nowrap;font-size:15.5px;}
+
+  /* 底部：作者 / 版本（公开版不显示单位），三项同字重同颜色 */
+  .foot{margin:16px 0 0;padding-top:10px;border-top:1px solid var(--line);
+        text-align:center;font-size:15px;color:var(--text2);line-height:1.8;}
+  .foot .sep{margin:0 16px;color:var(--line);}
+
+  /* 动画是主角：左栏（画布）吃掉大部分宽度，右栏只留够读文字的量 */
+  .cols{display:grid;grid-template-columns:minmax(0,1.56fr) minmax(312px,0.72fr);gap:14px;align-items:stretch;}
+  .col-left{display:flex;flex-direction:column;min-width:0;}
+  .col-right{display:flex;flex-direction:column;min-width:0;}
+  .col-right .info{flex:1;display:flex;flex-direction:column;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);}
+  .stage{padding:10px 10px 6px;margin-bottom:14px;}
+  canvas{display:block;width:100%;border-radius:12px;flex:none;}
+  .chips{display:flex;flex-wrap:wrap;gap:9px;margin:8px 2px 4px;}
+  .chip{border:1px solid var(--btnline);background:var(--btn);color:var(--text2);
+        padding:8px 17px;border-radius:999px;font-size:16px;cursor:pointer;transition:.18s;user-select:none;}
+  .chip:hover{border-color:var(--accent);color:var(--text);}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .chip.off{opacity:.45;cursor:not-allowed;}
+  .group{display:flex;align-items:center;gap:9px;flex-wrap:nowrap;}
+  .group .glab{font-size:15.5px;color:var(--text2);flex:0 0 auto;}
+  /* 四组选项挤成一行（胶囊文字都已缩短）；宽度不够时才自动折行，不再固定 2×2。
+     justify-content:space-between 让四项把整行铺满 —— 右侧不再空一大片，组间也自然分开了。 */
+  .groups{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 22px;margin-top:8px;}
+
+  .controls{padding:13px 18px 14px;}
+  .ctrl-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+  .ctrl-head .t1{font-weight:700;font-size:19px;}
+  .ctrl-head .note{color:var(--text2);font-size:15px;}
+
+  /* 参数行：标签 / 滑块 / 数值 三列。默认两列并排 —— 一条滑块独占一行太浪费整行宽度，
+     省下来的竖向空间全部让给画布。时间轴用一整行（它最长、也最常用）。 */
+  .params{margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:0 24px;align-items:center;}
+  .prow{display:grid;grid-template-columns:116px 1fr 72px;align-items:center;gap:9px;padding:3px 0;}
+  .prow.full{grid-column:1 / -1;grid-template-columns:138px 1fr 96px;}
+  .prow .pl{font-size:16px;color:var(--text2);white-space:nowrap;}
+  .prow .pv{font-size:16px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .prow input[type=range]{width:100%;}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:30px;background:transparent;margin:0;}
+  input[type=range]::-webkit-slider-runnable-track{height:7px;border-radius:4px;background:var(--track);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;
+    background:#fff;border:3px solid var(--accent);margin-top:-9px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.45);}
+  input[type=range]::-moz-range-track{height:7px;border-radius:4px;background:var(--track);}
+  input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;background:#fff;border:3px solid var(--accent);cursor:pointer;}
+  input[type=range]:disabled{opacity:.4;}
+  .prow.dim{opacity:.45;}
+
+  .tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+  .btn{border:1px solid var(--btnline);background:var(--btn);color:var(--text);
+       padding:9px 18px;border-radius:10px;font-size:16px;cursor:pointer;transition:.18s;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.demo{background:var(--demo);border-color:var(--demo);color:#fff;box-shadow:0 3px 13px rgba(219,39,119,.30);}
+  .btn.demo:hover{background:var(--demoHov);border-color:var(--demoHov);color:#fff;}
+  .opt{display:inline-flex;align-items:center;gap:7px;font-size:15.5px;color:var(--text2);cursor:pointer;user-select:none;}
+  input[type=checkbox]{accent-color:var(--accent);width:17px;height:17px;}
+
+  .info{padding:14px 18px 15px;}
+  .info-top{display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:11px;}
+  .badge{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .badge .dot{width:16px;height:16px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(77,141,255,.18);flex:none;}
+  .badge b{font-size:26px;letter-spacing:1px;}
+  .badge .hint{font-size:15px;color:var(--text2);min-width:0;}
+  .badge .btn{margin-left:auto;flex:0 0 auto;padding:6px 14px;font-size:15px;}
+  .badge .btn[aria-pressed="true"]{background:var(--demo);border-color:var(--demo);color:#fff;}
+  .readout{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+           padding:9px 14px;border-radius:12px;background:var(--card2);border:1px solid var(--line);}
+  .readout div{text-align:center;}
+  .readout label{display:block;font-size:14px;color:var(--text2);margin-bottom:1px;}
+  .readout b{font-size:20px;font-variant-numeric:tabular-nums;}
+  .readout b.hl{color:var(--demo);}
+  .cmpnote{margin:6px 0 0;font-size:15px;line-height:1.6;color:var(--text2);text-align:center;}
+
+  /* 知识讲解：问题（dt）+ 答案（dd）直接呈现 */
+  .fields{margin:0;flex:1;display:grid;grid-template-columns:1fr;align-content:space-between;gap:0;}
+  .fields .row{padding:4px 0;border-top:1px dashed var(--line);}
+  .fields dt{font-size:17px;color:var(--dash);font-weight:700;margin-bottom:2px;}
+  .fields dd{margin:0;font-size:17px;line-height:1.54;color:var(--dd);}
+
+  /* 当前模式下用不到的读数格（单门时的 Δt₂ / v₂ / a）：留位置但不抢眼 */
+  .readout .na{opacity:.42;}
+
+  /* 参数值：数字（每帧写入）+ 静态 TeX 单位 */
+  .pv .un{margin-left:5px;}
+  .pv .un .katex{font-size:1em;}
+  .tip{margin:11px 0 0;padding:11px 15px;font-size:16px;line-height:1.65;
+       background:var(--tipbg);border:1px solid var(--tipline);color:var(--tipfg);border-radius:10px;}
+
+  .formulas{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
+            display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 18px;align-items:baseline;}
+  .formulas .frow{display:flex;align-items:baseline;gap:8px;font-size:15px;line-height:2.0;color:var(--text);}
+  .formulas .fl{flex:0 0 82px;color:var(--text2);font-size:14px;}
+  .formulas .fx{flex:1;min-width:0;}
+  .katex{font-size:1.06em;}
+
+  @media (max-width:1000px){ .cols{grid-template-columns:1fr;} }
+  @media (max-width:1180px){ .params{grid-template-columns:1fr;} .prow.full{grid-template-columns:138px 1fr 96px;} }
+  /* 注意：这条只能加在「宽屏」条件下 —— 否则它会盖掉上面那条窄屏单列规则，
+     窄屏（≤1000px）会退回两栏、左栏被压到几十像素。 */
+  @media (min-width:1001px) and (max-height:940px){
+    .cols{grid-template-columns:minmax(0,1.36fr) minmax(340px,0.84fr);}
+  }
+  /* 矮屏（1600×900 及以下）紧凑模式：整页仍以「一屏放下」为目标，
+     只收紧间距与次要文字，不隐藏任何教学内容。
+     矮屏下右栏要放宽一点 —— 栏越窄文字换行越多、整栏越高，反而挤掉画布的高度。 */
+  @media (max-height:940px){
+    header.top .sub{display:none;}
+    header.top{margin-bottom:8px;}
+    .info{padding:12px 15px 13px;}
+    .info-top{gap:7px;margin-bottom:8px;}
+    .badge b{font-size:23px;}
+    .readout{padding:8px 12px;}
+    .readout label{margin-bottom:1px;}
+    .fields .row{padding:3px 0;}
+    .fields dt{font-size:16px;margin-bottom:2px;}
+    .fields dd{font-size:16px;line-height:1.5;}
+    .tip{font-size:15px;padding:8px 12px;margin-top:7px;}
+    .formulas{margin-top:7px;padding-top:6px;}
+    .formulas .frow{line-height:1.9;}
+    .cmpnote{margin-top:6px;font-size:14px;}
+    /* 控件卡收紧；胶囊也略窄一点，好让四组在 1600 宽下仍挤得进一行 */
+    .controls{padding:10px 18px 11px;}
+    .chips{gap:7px;margin:6px 2px 2px;}
+    .chip{padding:5px 12px;font-size:15px;}
+    .groups{gap:3px 14px;margin-top:6px;}
+    .tools{margin-top:10px;}
+    .btn{padding:7px 15px;font-size:15px;}
+    .prow{padding:2px 0;}
+  }
+  @media (max-width:860px){
+    header.top{align-items:flex-start;}
+    .prow,.prow.full{grid-template-columns:1fr auto;grid-template-areas:"lab val" "sld sld";}
+    .prow .pl{grid-area:lab;} .prow .pv{grid-area:val;} .prow input[type=range]{grid-area:sld;}
+  }
+  @media (max-width:760px){
+    body{padding:12px 12px 14px;}
+    header.top h1{font-size:23px;letter-spacing:.5px;}
+    header.top .sub{font-size:15px;}
+    .info{padding:14px 16px 16px;}
+    .badge b{font-size:24px;}
+    .readout{gap:6px;padding:10px 12px;}
+    .readout b{font-size:18px;}
+    .fields dt,.fields dd{font-size:16px;}
+    .tip{font-size:15px;}
+    .chip{padding:7px 14px;font-size:15px;}
+    /* 窄屏：四组一行肯定挤不下，让它自然折行；组内胶囊也允许折行，免得撑出横向滚动 */
+    .groups{gap:3px 12px;}
+    .group{flex-wrap:wrap;}
+  }
+</style>
+</head>
+<body>
+<script>try{ if (localStorage.getItem('hm_theme') === 'light') document.body.classList.add('light'); }catch(e){}</script>
+<div class="wrap">
+  <header class="top">
+    <div class="titles">
+      <h1>光电门原理</h1>
+      <p class="sub">气垫导轨 3D 示意 —— 看清「光被遮住的那段时间」是怎么变成速度的</p>
+    </div>
+    <button class="btn" id="themeBtn" type="button">☀ 浅色模式</button>
+  </header>
+
+  <div class="cols">
+    <div class="col-left">
+
+    <section class="card stage">
+      <canvas id="cv"></canvas>
+    </section>
+
+    <section class="card controls">
+      <div class="ctrl-head">
+        <span class="t1">实验条件</span>
+        <span class="note">默认原速播放；想看清通过光电门的过程，把「通过光电门」切到「慢放」</span>
+      </div>
+
+      <div class="groups">
+        <div class="group"><span class="glab">实验模式</span><span id="gMode"></span></div>
+        <div class="group"><span class="glab">运动性质</span><span id="gMotion"></span></div>
+        <div class="group"><span class="glab">遮光片宽度 $d$</span><span id="gFlag"></span></div>
+        <div class="group"><span class="glab">通过光电门</span><span id="gPass"></span></div>
+      </div>
+
+      <!-- 数值用 <b> 每帧写 textContent；单位是静态的，交给 KaTeX 渲一次（物理量符号 + 正体单位） -->
+      <div class="params">
+        <div class="prow" id="rowV0">
+          <span class="pl">初速度 $v_0$</span>
+          <input type="range" id="sV0" min="10" max="50" value="10" step="1">
+          <span class="pv"><b id="vV0">0.10</b><span class="un">$\mathrm{m/s}$</span></span>
+        </div>
+        <div class="prow">
+          <span class="pl">光电门 1 位置</span>
+          <input type="range" id="sG1" min="120" max="400" value="200" step="1">
+          <span class="pv"><b id="vG1">20</b><span class="un">$\mathrm{cm}$</span></span>
+        </div>
+        <div class="prow" id="rowA">
+          <span class="pl">加速度 $a$</span>
+          <input type="range" id="sA" min="0" max="160" value="0" step="1">
+          <span class="pv"><b id="vA">0.00</b><span class="un">$\mathrm{m/s^2}$</span></span>
+        </div>
+        <div class="prow" id="rowG2">
+          <span class="pl">光电门 2 位置</span>
+          <input type="range" id="sG2" min="460" max="720" value="600" step="1">
+          <span class="pv"><b id="vG2">60</b><span class="un">$\mathrm{cm}$</span></span>
+        </div>
+        <div class="prow full">
+          <span class="pl">时间轴（可拖动）</span>
+          <input type="range" id="sTime" min="0" max="1000" value="0" step="1">
+          <span class="pv"><b id="vTime">0 / 0</b><span class="un">$\mathrm{ms}$</span></span>
+        </div>
+      </div>
+
+      <div class="tools">
+        <button class="btn demo" id="btnAuto" type="button">自动演示全过程</button>
+        <button class="btn" id="btnReset" type="button">回到起点</button>
+        <label class="opt"><input type="checkbox" id="optWave" checked> 显示光束时序图</label>
+      </div>
+    </section>
+
+    </div><!-- /col-left -->
+
+    <div class="col-right">
+    <section class="card info">
+      <div class="info-top">
+        <div class="badge">
+          <span class="dot" id="dot"></span>
+          <b id="stateName">未开始</b>
+          <span class="hint" id="stateHint">点「自动演示全过程」让滑块通过光电门</span>
+          <button class="btn" id="btnReveal" type="button" aria-pressed="false"
+                  title="先让学生用 v = d/Δt 自己算一算，再展开比对">显示答案</button>
+        </div>
+        <!-- 三排读数：① 直接量到的（Δt、d） ② 算出来的（v₁ v₂ a） ③ 对照（进/测量/出） -->
+        <div class="readout">
+          <div><label>挡光时间 $\Delta t_1$</label><b id="rT1">—</b></div>
+          <div id="cellT2"><label>挡光时间 $\Delta t_2$</label><b id="rT2">—</b></div>
+          <div><label>遮光片宽度 $d$</label><b id="rD">—</b></div>
+        </div>
+        <div class="readout">
+          <div><label>速度 $v_1 = d/\Delta t_1$</label><b id="rV1" class="hl">—</b></div>
+          <div id="cellV2"><label>速度 $v_2 = d/\Delta t_2$</label><b id="rV2" class="hl">—</b></div>
+          <div id="cellA"><label>加速度 $a$</label><b id="rAcc" class="hl">—</b></div>
+        </div>
+      </div>
+
+      <div class="readout" id="roCmp">
+        <div><label>遮光开始时 $v$</label><b id="cVe">—</b></div>
+        <div><label>测量值 $d/\Delta t$</label><b id="cVm">—</b></div>
+        <div><label>遮光结束时 $v$</label><b id="cVx">—</b></div>
+      </div>
+      <p class="cmpnote" id="cmpnote">光电门测得的 $d/\Delta t$ 是遮光全过程的<b>平均速度</b>。</p>
+
+      <!-- 知识讲解：问题 + 答案直接呈现（课堂上逐条讲） -->
+      <dl class="fields">
+        <div class="row"><dt>光电门是什么？</dt><dd id="f1">—</dd></div>
+        <div class="row"><dt>它记录的是时间？</dt><dd id="f2">—</dd></div>
+        <div class="row"><dt>速度是怎么来的？</dt><dd id="f3">—</dd></div>
+        <div class="row"><dt>遮光片为什么要窄？</dt><dd id="f4">—</dd></div>
+        <div class="row"><dt>两个光电门怎么用才能测加速度？</dt><dd id="f5">—</dd></div>
+      </dl>
+
+      <div class="formulas">
+        <div class="frow"><span class="fl">测瞬时速度</span><span class="fx">$v=\dfrac{d}{\Delta t}$</span></div>
+        <div class="frow"><span class="fl">测加速度</span><span class="fx">$a=\dfrac{v_2^{2}-v_1^{2}}{2s}$</span></div>
+      </div>
+
+      <p class="tip" id="tip"></p>
+    </section>
+    </div><!-- /col-right -->
+  </div><!-- /cols -->
+
+  <footer class="foot" id="foot"></footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================== 署名配置（公开版：不显示单位） ================== */
+var AUTHOR_CFG = { author:'熊和平（大熊印象）', version:'V2.6' };
+(function initAuthor(){
+  var foot = document.getElementById('foot');
+  if (!foot) return;
+  var parts = ['作者：' + AUTHOR_CFG.author];
+  if (AUTHOR_CFG.version) parts.push('版本：' + AUTHOR_CFG.version);
+  foot.innerHTML = parts.join('<span class="sep">·</span>');
+})();
+
+/* ================== 深浅主题（CSS 变量 + Canvas 调色板 双轨） ================== */
+var THEMES = {
+  dark:{
+    bgA:'#182640', bgB:'#101a30',
+    /* 3D 面着色：top=顶面（最亮）front=前面(+z) side=右面(+x)（最暗） */
+    rail:{top:'#3d5180', front:'#243350', side:'#1a2745'},
+    leg:{top:'#2c3c60', front:'#1c2946', side:'#141f38'},
+    glider:{top:'#7fb0ff', front:'#4d8dff', side:'#2f62c4'},
+    flag:{top:'#fcd34d', front:'#b45309', side:'#d97706'},
+    flagEdge:'#fbbf24',
+    flagInk:'#ffe9b8',      /* 画在遮光片上的字/尺寸线：遮光片本身是深琥珀色，两套主题都用浅墨 */
+    gate:{top:'#b6c6de', front:'#93a7c4', side:'#7085a8'},
+    vec:'#8ab8ff',
+    railEdge:'rgba(150,170,200,.55)', railTick:'rgba(170,190,220,.55)',
+    flagTx:'#fbbf24',
+    gateEdge:'#c3d2e6', gateTx:'#16223a',
+    beamOn:'#ff4d6d', beamGlow:'rgba(255,77,109,.45)', beamOff:'rgba(130,145,170,.30)',
+    recvOn:'#22c55e', recvOff:'#64748b',
+    wave:'#38bdf8', waveFill:'rgba(56,189,248,.20)', waveDone:'rgba(56,189,248,.85)', waveTodo:'rgba(120,140,170,.30)',
+    timerBg:'rgba(10,16,28,.72)', timerEdge:'rgba(150,170,200,.45)', timerOn:'#ff8fa3', timerOff:'#9fb3cc',
+    grid:'rgba(140,160,190,.20)',
+    halo:'rgba(10,16,28,.80)',
+    fg:'rgba(235,242,252,.94)', fg2:'rgba(178,194,218,.78)'
+  },
+  light:{
+    bgA:'#e9f1fb', bgB:'#dce7f5',
+    rail:{top:'#e8eef5', front:'#c9d5e3', side:'#aebdd0'},
+    leg:{top:'#c3cfdd', front:'#a9b9cb', side:'#93a5b9'},
+    glider:{top:'#6f9be0', front:'#2f6fd0', side:'#1d4f9c'},
+    flag:{top:'#f0c232', front:'#a16207', side:'#c47f08'},
+    flagEdge:'#8a5f05',
+    flagInk:'#fff0cf',
+    gate:{top:'#8b9cb3', front:'#64748b', side:'#475569'},
+    vec:'#1d4f9c',
+    railEdge:'rgba(70,90,120,.55)', railTick:'rgba(70,90,120,.55)',
+    gliderEdge:'#1d4f9c',
+    /* 浅底上「d = …」标注要压深一档（#d99a0c 作色块可以，作文字太淡） */
+    flagTx:'#8a5f05',
+    gateEdge:'#334155', gateTx:'#ffffff',
+    beamOn:'#dc2626', beamGlow:'rgba(220,38,38,.30)', beamOff:'rgba(120,135,160,.35)',
+    recvOn:'#15803d', recvOff:'#94a3b8',
+    wave:'#0369a1', waveFill:'rgba(3,105,161,.16)', waveDone:'rgba(3,105,161,.85)', waveTodo:'rgba(120,140,170,.28)',
+    timerBg:'rgba(255,255,255,.82)', timerEdge:'rgba(70,90,120,.45)', timerOn:'#be123c', timerOff:'#5b6672',
+    grid:'rgba(70,90,120,.18)',
+    halo:'rgba(255,255,255,.86)',
+    fg:'#1c2430', fg2:'#5b6672'
+  }
+};
+var PAL = THEMES.dark;
+function isLight(){ return document.body.classList.contains('light'); }
+function setTheme(th){
+  PAL = THEMES[th] || THEMES.dark;
+  document.body.classList.toggle('light', th === 'light');
+  var b = document.getElementById('themeBtn');
+  if (b) b.textContent = (th === 'light') ? '🌙 深色模式' : '☀ 浅色模式';
+  try { localStorage.setItem('hm_theme', th); } catch(err){}
+  if (typeof updatePanel === 'function') updatePanel();
+}
+
+/* ================== 常量与字体 ================== */
+var FONT = '"Times New Roman",Times,"PingFang SC","Microsoft YaHei",sans-serif';
+var FONT_MATH = '"KaTeX_Main",' + FONT;
+
+/* 3D 场景尺度（单位 m）：斜二测投影 —— x 沿导轨向右、y 竖直向上、z 指向观察者；
+   越远（z 越小）在屏上越向左上方偏移，相当于相机在右前上方。
+   这个视角能同时看清：光束被遮光条切断、发射器/接收器分立门架两侧、滑块从门架下穿过。 */
+var TRACK = 0.80;      // 导轨长（m）
+var X0    = 0.06;      // 遮光条中心初始位置（m）
+var XEND  = 0.75;      // 演示结束位置（m）
+var TRACK_W = 0.060;   // 导轨半宽 z（m）
+var TRACK_H = 0.052;   // 导轨高（m）
+var LEG_H   = 0.092;   // 支腿高（m）
+var GLIDER_L = 0.10;   // 滑块长（m）
+var FLAG_Z  = 0.0025;  // 遮光片半厚 z：0.5 cm 的薄片（厚度沿光束方向）（m）
+var FLAG_TOP = 0.150;  // 遮光片顶高（m）
+var GATE_Z  = 0.080;   // 光电门立柱 z（m）
+var GATE_TOP = 0.185;  // 门架顶高（m）
+var BEAM_Y  = 0.106;   // 光束高度（m）——高于滑块、低于遮光条顶
+
+/* 画布内字号的"总闸" */
+var FS_TITLE = 15, FS_LAB = 15, FS_TICK = 14, FS_GATE = 16, FS_VEC = 17, FS_TIMER = 26, FS_WAVE = 15;
+/* 时序图里 Δt 的读数下标单独定档：底字 18、下标 14 ——
+   下标必须"看得出是下标"（明显小一号且压低），但又不能低于画布 14px 的可读下限。 */
+var FS_DT = 18, FS_DTS = FS_TICK;
+
+/* ================== 状态变量 ================== */
+var cv = document.getElementById('cv');
+var ctx = cv.getContext('2d');
+var W = 0, H = 0, DPR = 1;
+
+var MODE = 'single';       // 'single' | 'double'
+var MOTION = 'uniform';    // 'uniform' | 'accel'
+var V0 = 0.10;             // 初速度 m/s（可调范围 0.10～0.50，默认 0.10）
+var A  = 0;                // 加速度 m/s^2
+var D  = 0.04;             // 遮光片宽度 m（沿运动方向，默认 4 cm）
+var XG1 = 0.20, XG2 = 0.60;// 光电门位置 m（门1 默认 20 cm）
+var SHOW_WAVE = true;
+var SLOWMO = false;        // 通过光电门时是否慢放（默认原速）
+var REVEAL = false;        // 是否显示「计算值」（v₁/v₂/a/d·Δt⁻¹）——课堂先让学生自己算
+
+var tNow = 0;              // 当前真实时间（s）
+var DEMO = 'idle';         // 'idle' | 'run' | 'hold'  —— 单一状态机
+
+/* ================== 小工具 ================== */
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function clamp01(v){ return clamp(v,0,1); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+
+/* ================== 物理：解析解 ================== */
+/* 遮光条中心位置 xc(t) = X0 + V0*t + 0.5*A*t^2 */
+function xAt(t){ return X0 + V0*t + 0.5*A*t*t; }
+function vAt(t){ return V0 + A*t; }
+/* 求 xc(t) = X 的时刻（取较小的正根） */
+function tAtX(X){
+  var dx = X - X0;
+  if (Math.abs(A) < 1e-9) return dx / V0;
+  var disc = V0*V0 + 2*A*dx;
+  if (disc < 0) return NaN;
+  return (-V0 + Math.sqrt(disc)) / A;
+}
+function tEnd(){
+  var lim = (MODE === 'double') ? Math.min(XEND, XG2 + 0.14) : Math.min(XEND, XG1 + 0.18);
+  var t = tAtX(lim);
+  return (isFinite(t) && t > 0.05) ? t : 2.0;
+}
+/* 门 g 的遮光区间 [t1,t2]：遮光条中心从 xg-d/2 运动到 xg+d/2 */
+function gateWindow(xg){
+  var t1 = tAtX(xg - D/2), t2 = tAtX(xg + D/2);
+  if (!isFinite(t1) || !isFinite(t2) || t2 <= t1) return null;
+  return { x:xg, t1:t1, t2:t2, dt:t2-t1 };
+}
+function gateList(){
+  var out = [gateWindow(XG1)];
+  if (MODE === 'double') out.push(gateWindow(XG2));
+  return out.filter(function(g){ return !!g; });
+}
+/* 测量读数：done=已完成 / ing=进行中 / wait=未到 */
+function measure(g, t){
+  if (!g) return null;
+  var r = { dt:g.dt, v:D/g.dt, ve:vAt(g.t1), vx:vAt(g.t2), done:t >= g.t2, ing:t >= g.t1 && t < g.t2, wait:t < g.t1 };
+  if (r.ing) r.dtNow = t - g.t1;
+  return r;
+}
+
+/* ================== 布局（3D 斜投影） ================== */
+var lay = null;
+function layout(){
+  var padX = 14;
+  /* 时序图占 28%：它是配角，主场景（3D 装置）才是要看的东西，剩下的高度全给它 */
+  var waveH = SHOW_WAVE ? Math.round(H * 0.30) : 0;
+  if (waveH && waveH < 126) waveH = Math.min(126, Math.round(H*0.34));
+  var scene = { x:padX, y:6, w:W - 2*padX, h:Math.max(170, H - waveH - 12) };
+  /* 宽：导轨全长 + 左侧深度偏移 + 右端速度箭头；高：门架顶/门号胶囊 到 支腿/刻度数字 */
+  var ppm = Math.min((scene.w - 110) / TRACK, (scene.h - 46) / 0.352);
+  var offX = scene.x + 58 + (scene.w - 116 - TRACK*ppm)/2;
+  var oy   = scene.y + 34 + (GATE_TOP + 0.040) * ppm;
+  lay = {
+    scene:scene, ppm:ppm, ox:offX, oy:oy,
+    p3:function(x,y,z){ var k = -z;   /* k>0 = 场景深处 */
+      return { x: offX + (x + 0.42*k)*ppm, y: oy - (y + 0.20*k)*ppm }; }
+  };
+  if (waveH){
+    var wv = { x:padX + 6, y:scene.y + scene.h + 8, w:W - 2*padX - 12, h:H - (scene.y + scene.h + 8) - 8 };
+    lay.wave = wv;
+    lay.tx = function(t, te){ return wv.x + WAVE_GUT + (te > 0 ? (t/te) : 0) * (wv.w - WAVE_GUT - 12); };
+  }
+}
+
+/* 分段文字的总宽度（与 drawSeg 同一套字体规则，供居中/夹边界用） */
+function segWidth(segs){
+  var c = ctx, t = 0, i, s;
+  for (i=0;i<segs.length;i++){
+    s = segs[i];
+    c.font = (s.b?'700 ':'') + (s.i?'italic ':'') + (s.s||FS_LAB) + 'px ' + FONT_MATH;
+    t += c.measureText(s.t).width;
+  }
+  return t;
+}
+
+/* 画布内分段文字（变量斜体、上标/下标用 s.dy 抬高或压低） */
+function drawSeg(c, x, y, segs, align){
+  var ws = [], tot = 0, k, s;
+  for (k=0;k<segs.length;k++){
+    s = segs[k];
+    c.font = (s.b?'700 ':'') + (s.i?'italic ':'') + (s.s||FS_LAB) + 'px ' + FONT_MATH;
+    ws[k] = c.measureText(s.t).width;
+    tot += ws[k];
+  }
+  var cx = (align === 'center') ? x - tot/2 : ((align === 'right') ? x - tot : x);
+  for (k=0;k<segs.length;k++){
+    s = segs[k];
+    c.font = (s.b?'700 ':'') + (s.i?'italic ':'') + (s.s||FS_LAB) + 'px ' + FONT_MATH;
+    var yy = y + (s.dy || 0);
+    /* halo：先描一圈背景色再填字 —— HUD 文字飘在场景上（导轨/门架）也能读 */
+    if (s.halo){
+      c.textAlign = 'left'; c.lineJoin = 'round'; c.lineWidth = 3.2;
+      c.strokeStyle = s.halo;
+      c.strokeText(s.t, cx, yy);
+    }
+    c.fillStyle = s.c || PAL.fg;
+    c.textAlign = 'left';
+    c.fillText(s.t, cx, yy);
+    cx += ws[k];
+  }
+  return tot;
+}
+function txt(c, s, x, y, size, color, align, bold){
+  c.font = (bold?'700 ':'') + (size||FS_LAB) + 'px ' + FONT;
+  c.fillStyle = color || PAL.fg;
+  c.textAlign = align || 'left';
+  c.fillText(s, x, y);
+  c.textAlign = 'left';
+}
+
+/* ================== 绘制：3D 基元 ================== */
+function roundRect(c,x,y,w,h,r){
+  r = Math.min(r, Math.abs(w)/2, Math.abs(h)/2);
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+  c.closePath();
+}
+function poly3(c, pts, fill, edge, lw){
+  c.beginPath();
+  c.moveTo(pts[0].x, pts[0].y);
+  for (var i=1;i<pts.length;i++) c.lineTo(pts[i].x, pts[i].y);
+  c.closePath();
+  if (fill){ c.fillStyle = fill; c.fill(); }
+  if (edge){ c.strokeStyle = edge; c.lineWidth = lw || 1.1; c.lineJoin = 'round'; c.stroke(); }
+}
+/* 轴对齐长方体。相机在右前上方 → 可见顶面、前面(+z)、右面(+x)，自上而下画出 */
+function drawBox(x0,x1, y0,y1, z0,z1, col, edge){
+  var p = lay.p3, c = ctx;
+  var tA=p(x0,y1,z0), tB=p(x1,y1,z0), tC=p(x1,y1,z1), tD=p(x0,y1,z1);
+  var bB=p(x1,y0,z0), bC=p(x1,y0,z1), bD=p(x0,y0,z1);
+  poly3(c,[tA,tB,tC,tD], col.top,   edge);
+  poly3(c,[tD,tC,bC,bD], col.front, edge);
+  poly3(c,[tB,tC,bC,bB], col.side,  edge);
+}
+/* 把 (z,y) 平面上的多边形沿 x 拉成棱柱：只画朝向相机的侧面 + 最靠近相机的剖面。
+   斜投影下：+x 朝右（最近）、+z 朝左下方（前）、+y 朝上。
+   一条边 (a→b) 的外法线 = (dy, -dz)（多边形按下面 gateProfile 的绕向），
+   所以 dy>0 的面朝前、-dz>0 的面朝上 —— 其余的面背对相机，不画。 */
+function extrudeX(poly, x0, x1, col, edge, trim){
+  var c = ctx, n = poly.length, i, a, b, A, B, C, D, dz, dy, pts = [];
+  for (i=0;i<n;i++){
+    a = poly[i]; b = poly[(i+1)%n];
+    dz = b[0]-a[0]; dy = b[1]-a[1];
+    A = lay.p3(x0, a[1], a[0]); B = lay.p3(x0, b[1], b[0]);
+    C = lay.p3(x1, b[1], b[0]); D = lay.p3(x1, a[1], a[0]);
+    if (dy > 1e-9)       poly3(c, [A,B,C,D], col.front, edge);
+    else if (dz < -1e-9) poly3(c, [A,B,C,D], col.top,   edge);
+  }
+  /* 最靠近相机的剖面（门框的正面轮廓）：先填色，再逐段描边。
+     trim = {seg, from:[z,y], to:[z,y]}：那条棱只描 from→to 这一段。
+     门框用它把"横梁底面"的描边截到开口处为止 —— 它压在背立柱顶上的那一小段
+     并不是真实棱（横梁端面与立柱侧面共面），描出来就像两件零件拼在一起。 */
+  for (i=0;i<n;i++) pts.push(lay.p3(x1, poly[i][1], poly[i][0]));
+  poly3(c, pts, col.side, null);
+  if (edge){
+    c.strokeStyle = edge; c.lineWidth = 1.1; c.lineJoin = 'round';
+    for (i=0;i<n;i++){
+      if (trim && i === trim.seg) continue;
+      c.beginPath();
+      c.moveTo(pts[i].x, pts[i].y);
+      c.lineTo(pts[(i+1)%n].x, pts[(i+1)%n].y);
+      c.stroke();
+    }
+    if (trim){
+      var pa = lay.p3(x1, trim.from[1], trim.from[0]);
+      var pb = lay.p3(x1, trim.to[1],   trim.to[0]);
+      c.beginPath(); c.moveTo(pa.x, pa.y); c.lineTo(pb.x, pb.y); c.stroke();
+    }
+  }
+}
+
+/* 门框尺寸：立柱与横梁取同一厚度，拐角才不会错出一个台阶 */
+function gateDims(){
+  var postW = 0.018, barH = 0.018;
+  return { postW:postW,
+           Zo: GATE_Z + postW/2,   /* 外缘（z 半宽） */
+           Zi: GATE_Z - postW/2,   /* 内缘（z 半宽） */
+           yb: GATE_TOP - barH };  /* 横梁下沿 */
+}
+/* 光束：某 x 处沿 z 方向的一段水平线 */
+function drawBeam(x, z0, z1, style, width, dash){
+  var c = ctx;
+  var a = lay.p3(x, BEAM_Y, z0), b = lay.p3(x, BEAM_Y, z1);
+  c.strokeStyle = style; c.lineWidth = width; c.lineCap = 'butt';
+  if (dash) c.setLineDash(dash);
+  c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+  if (dash) c.setLineDash([]);
+}
+
+/* ================== 绘制：气垫导轨（3D） ================== */
+function drawRail(){
+  var c = ctx;
+  /* 地面基线：支脚下的一条浅线，把"高度"衬托出来 */
+  var f0 = lay.p3(0.03, -LEG_H-0.004, 0.14), f1 = lay.p3(TRACK-0.03, -LEG_H-0.004, -0.14);
+  c.strokeStyle = PAL.grid; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(f0.x, f0.y); c.lineTo(f1.x, f1.y); c.stroke();
+
+  /* 两条支腿 */
+  drawBox(0.102, 0.138, -LEG_H, 0, -0.024, 0.024, PAL.leg, PAL.railEdge);
+  drawBox(0.662, 0.698, -LEG_H, 0, -0.024, 0.024, PAL.leg, PAL.railEdge);
+
+  /* 导轨主体 */
+  drawBox(0, TRACK, 0, TRACK_H, -TRACK_W, TRACK_W, PAL.rail, PAL.railEdge);
+
+  /* 刻度：前立面上的竖线 + 下方数字（每 20 cm 标数） */
+  for (var k=0;k<=8;k++){
+    var xt = k*0.10;
+    var major = (k % 2 === 0);
+    var a = lay.p3(xt, 0.030, TRACK_W), b = lay.p3(xt, 0.002, TRACK_W);
+    c.strokeStyle = PAL.railTick; c.lineWidth = major ? 1.6 : 1;
+    c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+    if (major){
+      var np = lay.p3(xt, 0, TRACK_W);
+      c.font = FS_TICK + 'px ' + FONT;
+      var nw = c.measureText(xt*100 + '').width;
+      if (np.x - nw/2 > lay.scene.x && np.x + nw/2 < lay.scene.x + lay.scene.w)
+        txt(c, (xt*100).toFixed(0), np.x, np.y + 16, FS_TICK, PAL.fg2, 'center');
+    }
+  }
+  var cp = lay.p3(TRACK, 0, TRACK_W);
+  txt(c, 'cm', cp.x + 8, cp.y + 16, FS_TICK, PAL.fg2, 'left');
+}
+
+/* ================== 绘制：光电门（3D，拆前/后两半保证遮挡关系） ================== */
+/* 后半：后立柱 + 后侧残光 + 接收器 —— 必须画在滑块之前（在滑块后面） */
+function drawGateBack(g){
+  var c = ctx, x = g.x, col = PAL.gate, edge = PAL.gateEdge;
+  var d = gateDims();
+  var m = measure(g, tNow);
+  var blocked = !!(m && m.ing);
+  var rz = -d.Zi + 0.006, ez = d.Zi - 0.006;
+
+  /* 后立柱：只画到横梁下沿 —— 横梁在"前段"里画，会把这段接缝盖住。
+     它必须画在导轨之前，导轨才能挡住它下半截（门框是跨在导轨上的）。
+     两个可见面自己填色，**棱只描外轮廓**：
+     内表面（z=-Zi）与侧面（x=x1）之间那条竖棱不描边 —— 描出来会和横梁端面的棱
+     在转角连成一条线，看着像"横梁 + 立柱"两件拼上去的；顶面也不画（会被横梁完全盖住）。 */
+  var p = lay.p3, xa = x - d.postW/2, xb = x + d.postW/2;
+  var A = p(xa, d.yb, -d.Zi), B = p(xb, d.yb, -d.Zi),
+      Ci = p(xb, -LEG_H, -d.Zi), D = p(xa, -LEG_H, -d.Zi);
+  var E = p(xb, d.yb, -d.Zo), Hp = p(xb, -LEG_H, -d.Zo);
+  poly3(c, [A, B, Ci, D], col.front, null);   /* 内表面（朝 +z） */
+  poly3(c, [E, B, Ci, Hp], col.side, null);   /* 立柱侧面（朝 +x） */
+  c.strokeStyle = edge; c.lineWidth = 1.1; c.lineJoin = 'round';
+  c.beginPath();
+  c.moveTo(A.x, A.y);  c.lineTo(D.x, D.y);    /* 左轮廓 */
+  c.moveTo(D.x, D.y);  c.lineTo(Ci.x, Ci.y);  /* 底边 */
+  c.moveTo(Ci.x, Ci.y); c.lineTo(Hp.x, Hp.y);
+  c.moveTo(Hp.x, Hp.y); c.lineTo(E.x, E.y);   /* 右轮廓 */
+  c.stroke();
+
+  /* 激光：遮光片**已经越过**光电门（xc > x）时，它挡在光束前面，
+     所以这一束画在滑块之前 —— 滑块会自然把它盖住。
+     （还没到门时激光在前，由 drawGateFront 画；被遮挡时遮光片背面到接收器之间没有光，不画。） */
+  if (!blocked && xAt(tNow) > x){
+    drawBeam(x, rz, ez, PAL.beamGlow, Math.max(8, 0.020*lay.ppm));
+    drawBeam(x, rz, ez, PAL.beamOn, Math.max(2.6, 0.006*lay.ppm));
+  }
+
+  /* 接收器：后柱内侧，收到光=绿，被挡=灰 */
+  var rp = lay.p3(x, BEAM_Y, -d.Zi + 0.006);
+  var r = Math.max(5.5, 0.010*lay.ppm);
+  c.beginPath(); c.arc(rp.x, rp.y, r, 0, Math.PI*2);
+  c.fillStyle = blocked ? PAL.recvOff : PAL.recvOn; c.fill();
+  c.strokeStyle = edge; c.lineWidth = 1.2; c.stroke();
+}
+
+/* 门框前半：前立柱 + 横梁，做成一块 L 形棱柱（一体成型，拐角没有拼缝）——画在滑块之后 */
+function drawGateFront(g, idx){
+  var c = ctx, x = g.x, col = PAL.gate, edge = PAL.gateEdge;
+  var d = gateDims();
+  var m = measure(g, tNow);
+  var blocked = !!(m && m.ing);
+  var rz = -d.Zi + 0.006;   /* 光束后端（接收器处） */
+  var ez =  d.Zi - 0.006;   /* 光束前端（发射器处） */
+  var r = Math.max(5.5, 0.010*lay.ppm);
+
+  /* 前立柱 + 顶横梁：一个 L 形剖面沿 x 拉出来，立柱与横梁同厚度、横梁铺满外缘。
+     "横梁底面"那条棱（index 4）只描开口那一段（z 从 -Zi 到 +Zi）：
+     它压在背立柱顶上的部分不是真实棱（与立柱侧面共面），描出来会像零件拼缝。 */
+  extrudeX([
+    [ d.Zi, -LEG_H], [ d.Zo, -LEG_H], [ d.Zo, GATE_TOP],
+    [-d.Zo, GATE_TOP], [-d.Zo, d.yb], [ d.Zi, d.yb]
+  ], x - d.postW/2, x + d.postW/2, col, edge,
+     { seg: 4, from: [-d.Zi, d.yb], to: [d.Zi, d.yb] });
+
+  /* 光束：
+     ① 被遮光片挡住 —— 只画遮光片近侧表面到发光器这一段（光在这里被切断，
+        遮光片背面到接收器之间没有光）；
+     ② 通光，且遮光片还没到门（xc ≤ x）—— 整条画出来（遮光片过门之后的那一段
+        由 drawGateBack 画在滑块之前，免得激光"穿"过遮光片）。 */
+  if (blocked){
+    drawBeam(x, FLAG_Z, ez, PAL.beamOn, Math.max(2.6, 0.006*lay.ppm));
+  } else if (xAt(tNow) <= x){
+    drawBeam(x, rz, ez, PAL.beamGlow, Math.max(8, 0.020*lay.ppm));
+    drawBeam(x, rz, ez, PAL.beamOn, Math.max(2.6, 0.006*lay.ppm));
+  }
+
+  /* 发射器：前柱内侧，常亮 */
+  var ep = lay.p3(x, BEAM_Y, ez);
+  c.beginPath(); c.arc(ep.x, ep.y, r, 0, Math.PI*2);
+  c.fillStyle = PAL.beamOn; c.fill();
+  c.strokeStyle = edge; c.lineWidth = 1.2; c.stroke();
+
+  /* 门号胶囊（贴在横梁上方） */
+  var label = (MODE === 'double') ? ('门' + (idx+1)) : '光电门';
+  c.font = '700 ' + FS_GATE + 'px ' + FONT;
+  var lw = c.measureText(label).width + 18, lh = 22;
+  var armA = lay.p3(x, GATE_TOP, -d.Zo), armB = lay.p3(x, GATE_TOP, d.Zo);
+  var lx = clamp((armA.x + armB.x)/2 - lw/2, lay.scene.x + 2, lay.scene.x + lay.scene.w - lw - 2);
+  var ly = Math.min(armA.y, armB.y) - lh - 10;
+  c.fillStyle = PAL.gate.front;
+  roundRect(c, lx, ly, lw, lh, lh/2); c.fill();
+  c.strokeStyle = PAL.gateEdge; c.lineWidth = 1.4; c.stroke();
+  txt(c, label, lx + lw/2, ly + lh/2 + 6, FS_GATE, PAL.gateTx, 'center', true);
+}
+
+/* ================== 绘制：滑块 + 遮光条（3D） ================== */
+function drawGlider(){
+  var c = ctx;
+  var xc = xAt(tNow);
+  var x0 = xc - GLIDER_L/2, x1 = xc + GLIDER_L/2;
+  var col = PAL.glider, edge = PAL.gliderEdge;
+
+  /* 滑块：底座 + 上块（两段 3D 盒，叠出梯形剖面） */
+  drawBox(x0, x1, TRACK_H, TRACK_H+0.015, -0.028, 0.028, col, edge);
+  drawBox(x0+0.009, x1-0.009, TRACK_H+0.015, TRACK_H+0.037, -0.015, 0.015, col, edge);
+
+  /* 遮光条：竖直薄片（沿 x 宽 d、横跨导轨），立在滑块顶上 —— 光束正好从它身上穿过 */
+  drawBox(xc-D/2, xc+D/2, TRACK_H+0.037, FLAG_TOP, -FLAG_Z, FLAG_Z, PAL.flag, PAL.flagEdge);
+
+  /* 遮光片的宽度 d 直接标在片子**顶部**：双箭头量出宽度，字母 d 排在箭头上方。
+     用浅墨画在深琥珀底上 —— 学生一眼就知道 d 指的是这一段。 */
+  var yDim = FLAG_TOP - 0.026;   /* 尺寸线贴近遮光片顶部 */
+  var fa = lay.p3(xc - D/2, yDim, FLAG_Z), fb = lay.p3(xc + D/2, yDim, FLAG_Z);
+  c.strokeStyle = PAL.flagInk; c.lineWidth = 1.4; c.lineCap = 'round';
+  c.beginPath();
+  c.moveTo(fa.x, fa.y); c.lineTo(fb.x, fb.y);
+  c.moveTo(fa.x, fa.y); c.lineTo(fa.x + 5, fa.y - 3.4);
+  c.moveTo(fa.x, fa.y); c.lineTo(fa.x + 5, fa.y + 3.4);
+  c.moveTo(fb.x, fb.y); c.lineTo(fb.x - 5, fb.y - 3.4);
+  c.moveTo(fb.x, fb.y); c.lineTo(fb.x - 5, fb.y + 3.4);
+  c.stroke(); c.lineCap = 'butt';
+  var dm = lay.p3(xc, FLAG_TOP - 0.012, FLAG_Z);
+  c.font = 'italic ' + FS_LAB + 'px ' + FONT_MATH;
+  c.fillStyle = PAL.flagInk; c.textAlign = 'center';
+  c.fillText('d', dm.x, dm.y);
+  c.textAlign = 'left';
+
+  c.lineCap = 'butt';
+}
+
+/* 速度矢量：跟在滑块**后面**、悬在导轨上方的那片空中，定长、只表示方向。
+   右旁那个 "v" 放不下就自动不画（滑块贴着导轨左端时）。数值不写在这儿 ——
+   文字是固定像素宽度的，跟着滑块跑在窄画布上必然撞门架或出界，改放右上角读数框。 */
+/* 速度矢量：紧贴滑块**右侧**、指向运动方向 —— 箭头从滑块右端伸出去，
+   字母 v 排在箭尾上方。数值不在画布上（右栏有 v₁ / v₂ 读数）。
+   用户明确说"不用在意是否被遮挡"，所以不再躲门架立柱，直接画在最上层。 */
+function drawVelVec(){
+  var c = ctx;
+  var xc = xAt(tNow);
+  var p0 = lay.p3(xc + GLIDER_L/2 + 0.022, TRACK_H + 0.022, TRACK_W + 0.004);
+  var vlen = 46, x0 = p0.x, x1 = x0 + vlen;
+
+  c.strokeStyle = PAL.vec; c.lineWidth = 3; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(x0, p0.y); c.lineTo(x1 - 3, p0.y); c.stroke();
+  c.lineCap = 'butt';
+  poly3(c, [
+    {x:x1,        y:p0.y},
+    {x:x1 - 9.5,  y:p0.y - 5.5},
+    {x:x1 - 9.5,  y:p0.y + 5.5}
+  ], PAL.vec, null, 0);
+
+  c.font = 'italic ' + FS_VEC + 'px ' + FONT_MATH;
+  c.fillStyle = PAL.vec; c.textAlign = 'left';
+  c.fillText('v', x1 - 11, p0.y - 9);   /* 符号跟着箭头尖 */
+  c.textAlign = 'left';
+}
+
+
+
+/* 数字计时器窗口：光电门唯一输出的东西 —— 一段挡光时间。
+   双门模式下两只门各占一行、各自更新（原来只显示门1，门2 的时间根本看不到）。 */
+function drawTimer(){
+  var c = ctx;
+  var gs = gateList();
+  var dbl = gs.length > 1;
+  var bw = dbl ? 172 : 158, bh = dbl ? 94 : 62;
+  var bx = lay.scene.x + 4, by = lay.scene.y + 4;
+  var i, m, running = false;
+  for (i=0;i<gs.length;i++){ m = measure(gs[i], tNow); if (m && m.ing) running = true; }
+
+  c.fillStyle = PAL.timerBg;
+  roundRect(c, bx, by, bw, bh, 8); c.fill();
+  c.strokeStyle = running ? PAL.beamOn : PAL.timerEdge;
+  c.lineWidth = running ? 2 : 1.2; c.stroke();
+
+  txt(c, '数字计时器', bx + 10, by + 18, FS_LAB, PAL.fg2);
+
+  if (!dbl){
+    m = gs.length ? measure(gs[0], tNow) : null;
+    var val = m ? (m.done ? m.dt : (m.ing ? m.dtNow : 0)) : 0;
+    c.font = '700 ' + FS_TIMER + 'px ' + FONT;
+    c.fillStyle = running ? PAL.timerOn : (m && m.done ? PAL.fg : PAL.timerOff);
+    c.textAlign = 'right';
+    c.fillText((val*1000).toFixed(1), bx + bw - 42, by + 46);
+    c.textAlign = 'left';
+    txt(c, 'ms', bx + bw - 38, by + 46, FS_LAB, PAL.fg2);
+    txt(c, running ? '计时中…' : (m && m.done ? '已停表' : '待触发'), bx + 10, by + 56, FS_TICK,
+        running ? PAL.beamOn : PAL.fg2);
+    return;
+  }
+
+  for (i=0;i<gs.length;i++){
+    m = measure(gs[i], tNow);
+    val = m ? (m.done ? m.dt : (m.ing ? m.dtNow : 0)) : 0;
+    var yy = by + 45 + i*28;
+    c.font = '700 ' + FS_TICK + 'px ' + FONT;
+    c.fillStyle = (m && m.ing) ? PAL.beamOn : PAL.fg2;
+    c.textAlign = 'left';
+    c.fillText('门' + (i+1), bx + 10, yy);
+    c.font = '700 ' + (FS_TIMER - 5) + 'px ' + FONT;
+    c.fillStyle = (m && m.ing) ? PAL.timerOn : (m && m.done ? PAL.fg : PAL.timerOff);
+    c.textAlign = 'right';
+    c.fillText((val*1000).toFixed(1), bx + bw - 40, yy);
+    c.textAlign = 'left';
+    txt(c, 'ms', bx + bw - 36, yy, FS_TICK, PAL.fg2);
+  }
+}
+
+/* 时序图左侧留给门号的宽度（绘图区从 wv.x + 门号栏 开始） */
+var WAVE_GUT = 62;
+
+/* ================== 绘制：光束通断时序图 ================== */
+function drawWave(){
+  if (!SHOW_WAVE || !lay.wave) return;
+  var c = ctx, wv = lay.wave, te = tEnd();
+  var gs = gateList();
+  if (!gs.length) return;
+
+  /* 分隔线 */
+  c.strokeStyle = PAL.grid; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(wv.x - 6, wv.y - 4); c.lineTo(wv.x + wv.w + 6, wv.y - 4); c.stroke();
+
+  txt(c, '光束通断时序（高 = 通光，低 = 被遮挡）', wv.x, wv.y + 13, FS_TITLE, PAL.fg2);
+
+  var axisY = wv.y + wv.h - 12;
+  var top = wv.y + 24;
+  var bandH = (axisY - 12 - top) / gs.length;
+
+  /* 时间轴刻度 */
+  c.strokeStyle = PAL.grid; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(wv.x + WAVE_GUT, axisY); c.lineTo(wv.x + wv.w - 12, axisY); c.stroke();
+  var step = (te > 1.6) ? 0.4 : ((te > 0.8) ? 0.2 : 0.1);
+  for (var t=0; t<=te+1e-9; t+=step){
+    var X = lay.tx(t, te);
+    c.beginPath(); c.moveTo(X, axisY); c.lineTo(X, axisY + 4); c.stroke();
+    txt(c, (t*1000).toFixed(0), X, axisY + 17, FS_TICK, PAL.fg2, 'center');
+  }
+  txt(c, 't / ms', wv.x + 4, axisY + 4, FS_TICK, PAL.fg2, 'left');
+
+  for (var i=0;i<gs.length;i++){
+    var g = gs[i];
+    var cy = top + bandH*(i + 0.5);
+    var hi = cy - Math.min(15, bandH*0.26);
+    var lo = cy + Math.min(15, bandH*0.26);
+    var X1 = lay.tx(g.t1, te), X2 = lay.tx(g.t2, te);
+    var X0p = wv.x + WAVE_GUT, XEp = wv.x + wv.w - 12;
+    var Xnow = lay.tx(Math.min(tNow, te), te);
+
+    /* 门号留在左侧栏；这段的 Δt 读数排在凹槽下面 */
+    txt(c, (gs.length>1 ? ('门'+(i+1)) : '光束'), wv.x + 4, cy + 5, FS_WAVE, PAL.fg2, 'left', true);
+
+    /* 已播放：通光段实线；未播放：淡色 */
+    c.lineWidth = 2.4; c.lineCap = 'butt';
+    var tEndPlay = Math.min(tNow, te);
+    function seg(a, b, y, style){
+      if (b <= a) return;
+      c.strokeStyle = style;
+      c.beginPath(); c.moveTo(a, y); c.lineTo(b, y); c.stroke();
+    }
+    var playX1 = Math.max(X0p, Math.min(X1, Xnow));
+    var playX2 = Math.max(X0p, Math.min(X2, Xnow));
+    /* 遮挡前 */
+    seg(X0p, Math.min(playX1, Xnow), hi, (tEndPlay >= 0) ? PAL.waveDone : PAL.waveTodo);
+    /* 遮挡中（凹槽） */
+    if (playX2 > playX1 && playX1 < Xnow){
+      var xEndBlock = Math.min(playX2, Xnow);
+      c.strokeStyle = PAL.waveDone;
+      c.beginPath(); c.moveTo(playX1, hi); c.lineTo(playX1, lo); c.lineTo(xEndBlock, lo);
+      if (xEndBlock >= X2) c.lineTo(X2, hi);
+      c.stroke();
+      c.fillStyle = PAL.waveFill;
+      c.fillRect(playX1, lo, xEndBlock - playX1, hi - lo);
+    }
+    /* 遮挡后 */
+    if (tEndPlay >= g.t2) seg(Math.max(X2, X0p), Xnow, hi, PAL.waveDone);
+    /* 未播放 */
+    seg(Math.max(Xnow, X0p), XEp, hi, PAL.waveTodo);
+
+    /* 这段凹槽的标注：宽度双箭头画在低位**上面**（凹槽里），
+       Δt 读数排在低位**下面** —— 两者各占一块，谁也不挤谁。 */
+    if (tNow > g.t1){
+      var a = Math.max(X1, X0p), b = Math.min(X2, Xnow);
+      var labCol = (tNow >= g.t2) ? PAL.wave : PAL.beamOn;
+      var dtShow = (tNow >= g.t2) ? g.dt : (tNow - g.t1);
+
+      /* 宽度双箭头：画在凹槽**上方**（高位线之上 8px）的空白处，
+         既不压在凹槽填充块上，也不和下面的 Δt 读数抢位置。
+         矮画布上高位线离标题太近时，退回凹槽内顶部。 */
+      var ya = hi - 8;
+      if (ya < wv.y + 22) ya = hi + 9;
+      if (b - a > 6){
+        c.strokeStyle = labCol; c.lineWidth = 1.3;
+        c.beginPath(); c.moveTo(a, ya); c.lineTo(b, ya); c.stroke();
+        c.beginPath();
+        c.moveTo(a, ya); c.lineTo(a+4, ya-3); c.moveTo(a, ya); c.lineTo(a+4, ya+3);
+        c.moveTo(b, ya); c.lineTo(b-4, ya-3); c.moveTo(b, ya); c.lineTo(b-4, ya+3);
+        c.stroke();
+      }
+
+      /* Δt 读数：真下标（小一号 + 压低），居中排在凹槽正下方 */
+      var segs = [
+        {t:'Δt', b:1, s:FS_DT, c:labCol},
+        {t:(gs.length>1 ? String(i+1) : ''), b:1, s:FS_DTS, dy:FS_DT*0.28, c:labCol},
+        {t:' = ' + (dtShow*1000).toFixed(1) + ' ms', b:1, s:FS_DT, c:labCol}
+      ];
+      var lw = segWidth(segs);
+      var lx = clamp((a+b)/2, wv.x + WAVE_GUT + lw/2, wv.x + wv.w - 12 - lw/2);
+      drawSeg(c, lx, lo + 16, segs, 'center');
+    }
+  }
+
+  /* 当前时间游标 */
+  var Xc = lay.tx(Math.min(tNow, te), te);
+  c.strokeStyle = PAL.beamOn; c.lineWidth = 1.4;
+  c.setLineDash([4,3]);
+  c.beginPath(); c.moveTo(Xc, wv.y + 2); c.lineTo(Xc, axisY); c.stroke();
+  c.setLineDash([]);
+}
+
+/* ================== 绘制总入口 ================== */
+function render(){
+  if (!lay) return;
+  var c = ctx;
+  c.clearRect(0,0,W,H);
+  var g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, PAL.bgA); g.addColorStop(1, PAL.bgB);
+  c.fillStyle = g;
+  c.fillRect(0, 0, W, H);
+
+  var gs = gateList(), i;
+  /* 门架后半（后立柱 / 接收器）先画，再画导轨 —— 导轨会挡住后立柱的下半截，
+     这才是真实的遮挡关系：门框是跨在导轨上的，被导轨挡住的那一段就看不见。 */
+  for (i=0;i<gs.length;i++) drawGateBack(gs[i]);
+  drawRail();
+  drawGlider();
+  for (i=0;i<gs.length;i++) drawGateFront(gs[i], i); /* 门架前半：画在滑块前面 */
+  drawVelVec();   /* 速度矢量：紧贴滑块右侧，画在最上层（不躲立柱） */
+  drawTimer();
+  drawWave();
+}
+
+/* ================== 面板 ================== */
+function fmtT(v){ return v == null ? '—' : (v*1000).toFixed(1) + ' ms'; }
+function fmtV(v){ return v == null ? '—' : v.toFixed(2) + ' m/s'; }
+
+/* 计算值（v₁ / v₂ / a / d·Δt⁻¹）默认藏起来 —— 课堂先让学生自己算，再点「显示答案」比对。
+   「—」「计时中…」是状态而不是答案，照原样显示。 */
+function ans(txt){
+  if (txt === '—' || txt === '计时中…') return txt;
+  return REVEAL ? txt : '？';
+}
+
+/* TeX 渲染：KaTeX 不在 canvas 里跑，用在右侧面板；
+   内容没变就跳过 —— 面板每帧都会调，但只有公式真变了才重排。 */
+function setTeX(el, html){
+  if (!el || el.dataset.tex === html) return;
+  el.dataset.tex = html;
+  el.innerHTML = html;
+  if (window.renderMathInElement){
+    try {
+      renderMathInElement(el, { delimiters:[{ left:'$', right:'$', display:false }] });
+    } catch(e){}
+  }
+}
+
+function updatePanel(){
+  var gs = gateList();
+  var m1 = gs.length ? measure(gs[0], tNow) : null;
+  var m2 = (MODE === 'double' && gs.length > 1) ? measure(gs[1], tNow) : null;
+
+  document.getElementById('rD').textContent = (D*100).toFixed(1) + ' cm';
+  document.getElementById('rT1').textContent = m1 ? (m1.done ? fmtT(m1.dt) : (m1.ing ? fmtT(m1.dtNow) : '—')) : '—';
+  document.getElementById('rV1').textContent = ans(m1 && m1.done ? fmtV(m1.v) : '—');
+
+  /* 单门模式下 Δt₂ / v₂ / a 用不到：留着格子（版式不跳）但压暗，让"切双门"变成明示的下一步 */
+  var dbl = (MODE === 'double');
+  ['cellT2','cellV2','cellA'].forEach(function(id){
+    document.getElementById(id).className = dbl ? '' : 'na';
+  });
+  if (dbl){
+    document.getElementById('rT2').textContent = m2 ? (m2.done ? fmtT(m2.dt) : (m2.ing ? fmtT(m2.dtNow) : '—')) : '—';
+    document.getElementById('rV2').textContent = ans(m2 && m2.done ? fmtV(m2.v) : '—');
+    if (m1 && m2 && m1.done && m2.done){
+      var s = XG2 - XG1;
+      var acc = (m2.v*m2.v - m1.v*m1.v) / (2*s);
+      document.getElementById('rAcc').textContent = REVEAL ? (acc.toFixed(2) + ' m/s²') : '？';
+    } else {
+      document.getElementById('rAcc').textContent = '—';
+    }
+  } else {
+    document.getElementById('rT2').textContent = '—';
+    document.getElementById('rV2').textContent = '—';
+    document.getElementById('rAcc').textContent = '—';
+  }
+
+  /* 对比：进入速度 / 测量值 / 离开速度 */
+  /* 对比三栏：挡光还没结束前，绝不能拿「已计时间」去除 d（那会得到一个假的大速度），
+     所以进行中只显示进入速度，测量栏给「计时中」。 */
+  var cur = m2 && (m2.done || m2.ing) ? m2 : m1;
+  var eVe = '—', eVm = '—', eVx = '—';
+  /* 进/出速度不遮（它们是"真实速度"，不是要学生算的量）；中间那格 d/Δt 才是答案，遮。 */
+  if (cur && cur.done){ eVe = fmtV(cur.ve); eVm = ans(fmtV(cur.v)); eVx = fmtV(cur.vx); }
+  else if (cur && cur.ing){ eVe = fmtV(cur.ve); eVm = '计时中…'; }
+  document.getElementById('cVe').textContent = eVe;
+  document.getElementById('cVm').textContent = eVm;
+  document.getElementById('cVx').textContent = eVx;
+
+  /* 状态徽标 */
+  var dot = document.getElementById('dot');
+  var sName = document.getElementById('stateName');
+  var sHint = document.getElementById('stateHint');
+  var name = '未开始', hint = '点「自动演示全过程」让滑块通过光电门', col;
+  if (m2 && m2.ing){ name = '门2：遮挡中'; hint = '光束被遮住，计时器正在累计时间'; col = PAL.beamOn; }
+  else if (m1 && m1.ing){ name = '门1：遮挡中'; hint = '光束被遮住，计时器正在累计时间'; col = PAL.beamOn; }
+  else if (m2 && m2.done){ name = '测量完成'; hint = '两个光电门都已完成挡光计时'; col = PAL.recvOn; }
+  else if (m1 && m1.done){ name = '已通过光电门'; hint = '计时器停表，得到 Δt₁'; col = PAL.recvOn; }
+  else if (tNow > 0){ name = '运动中'; hint = '滑块正在靠近光电门'; col = PAL.glider.front; }
+  sName.textContent = name; sHint.textContent = hint;
+  dot.style.background = col || 'var(--accent)';
+  dot.style.boxShadow = '0 0 0 4px ' + (col || 'rgba(77,141,255,.18)') + '33';
+
+  /* 解说字段（含物理量的句子用 KaTeX 渲染） */
+  setTeX(document.getElementById('f1'),
+    '一侧发光器发射红外光束，另一侧接收器接收；中间那道看不见的光横跨导轨。');
+  setTeX(document.getElementById('f2'),
+    '光电门只输出一个量 —— 光被遮住的时间 $\\Delta t$。它不测速度，也不测位移。');
+  setTeX(document.getElementById('f3'),
+    '遮光片宽度 $d$ 是我们自己量好的；它扫过光束的位移正好是 $d$，于是 $v = d/\\Delta t$。');
+  setTeX(document.getElementById('f4'),
+    '$d$ 越小，$\\Delta t$ 越短，速度变化越小，$d/\\Delta t$ 就越接近经过该位置的瞬时速度。');
+  setTeX(document.getElementById('f5'), (MODE === 'double')
+    ? '两只门各记一段挡光时间、各算一次 $v_1$ 与 $v_2$，量出两门间距 $s$，代入 $a = (v_2^2 - v_1^2)/2s$。'
+    : '切到「双门」模式，两只门各记一次挡光时间，配合两门间距 $s$ 就能算加速度。');
+
+  /* 对比说明 */
+  var cn = '光电门测得的 $d/\\Delta t$ 是遮光全过程的<b>平均速度</b>。';
+  if (cur && cur.done){
+    cn = MOTION === 'uniform'
+      ? '匀速时速度不变：进入、测量值、离开三者相等 —— 平均速度就是瞬时速度。'
+      : '匀变速时，测量值正好等于遮光首末速度的平均值，也就是遮光过程「时间中点」的瞬时速度。';
+  }
+  setTeX(document.getElementById('cmpnote'), cn);
+
+  /* tip：未展开答案时只给"该算什么"，不给数值 —— 否则等于把答案念出来 */
+  var tip = '';
+  if (m1 && m1.ing) tip = '此刻光束被挡住，计时器在走数字 —— 光电门干的事就这么一件：记住挡了多久。';
+  else if (m2 && m2.ing) tip = '第二只光电门也在做同一件事：再记一段挡光时间。';
+  else if (MODE === 'double' && m1 && m2 && m1.done && m2.done){
+    var s2 = XG2 - XG1;
+    var a2 = (m2.v*m2.v - m1.v*m1.v)/(2*s2);
+    var err = (A > 1e-9) ? Math.abs(a2 - A)/A*100 : 0;
+    tip = REVEAL
+      ? '$\\Delta t_2$ 比 $\\Delta t_1$ 短，说明滑块变快了；用两次速度算得 $a$ = ' + a2.toFixed(2) +
+        ' m/s$^2$（设定 ' + A.toFixed(2) + ' m/s$^2$，偏差 ' + err.toFixed(2) + '%）。把遮光片调窄，偏差会明显变小。'
+      : '两段挡光时间都记下来了。请先自己算：$v_1 = d/\\Delta t_1$、$v_2 = d/\\Delta t_2$，' +
+        '再用 $a = (v_2^2 - v_1^2)/2s$（两门间距 $s$ = ' + (s2*100).toFixed(0) + ' cm）求 $a$，然后点「显示答案」比对。';
+  } else if (MODE === 'double' && m1 && m1.done){
+    tip = '门1 已记下 $\\Delta t_1$ = ' + (m1.dt*1000).toFixed(1) + ' ms，滑块正在驶向光电门 2。';
+  } else if (m1 && m1.done){
+    tip = REVEAL
+      ? '$\\Delta t_1$ = ' + (m1.dt*1000).toFixed(1) + ' ms，$v_1 = d/\\Delta t_1$ = ' + m1.v.toFixed(2) + ' m/s —— 速度是算出来的，不是光电门读出来的。'
+      : '计时器停表了，$\\Delta t_1$ = ' + (m1.dt*1000).toFixed(1) + ' ms。请先自己算 $v_1 = d/\\Delta t_1$，再点「显示答案」比对。';
+  } else if (tNow > 0){
+    tip = '看右下角时序图：光通时是高电平，被遮挡时掉下去 —— 那个凹槽的宽度就是 $\\Delta t$。';
+  } else {
+    tip = '把「遮光片宽度 $d$」在 2 cm 与 8 cm 之间各演示一次，对比 $\\Delta t$ 与速度读数的变化 —— 就能明白实验为什么要求 $d$ 尽量窄。';
+  }
+  setTeX(document.getElementById('tip'), tip);
+
+  /* 时间轴读数与滑块位置 —— 统一在面板刷新里同步，
+     这样调参数导致 tEnd 变化（或窗口缩放）时，滑块不会停在旧刻度上。 */
+  var te = tEnd();
+  document.getElementById('vTime').textContent = (tNow*1000).toFixed(0) + ' / ' + (te*1000).toFixed(0);
+  document.getElementById('sTime').value = Math.round(clamp01(tNow/te)*1000);
+}
+
+/* ================== 尺寸 ================== */
+function applySize(cssW, cssH){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  cv.style.height = cssH + 'px';
+  cv.width = Math.round(cssW*DPR);
+  cv.height = Math.round(cssH*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  W = cssW; H = cssH;
+  layout();
+}
+
+/* 单列布局（窄屏）：讲解区在画布下方，页面本来就要滚动，
+   不必为「一屏放下」压画布 —— 直接按宽度给一个够大的高度。 */
+function stacked(){ return window.innerWidth <= 1000; }
+
+function fitViewport(cssW, cssH){
+  if (stacked()) return;
+  var vh = window.innerHeight || 0;
+  if (!vh || !document.documentElement) return;
+  var over = document.documentElement.scrollHeight - vh;
+  if (over <= 2) return;
+  var next = Math.max(320, cssH - over - 4);
+  if (next >= cssH) return;
+  applySize(cssW, next);
+  if (document.documentElement.scrollHeight > vh + 2) applySize(cssW, cssH);
+}
+
+function measureSlack(){
+  var left = document.querySelector('.col-left'), right = document.querySelector('.col-right');
+  if (!left || !right || !left.children.length) return 0;
+  var last = left.children[left.children.length - 1];
+  var mb = parseFloat(getComputedStyle(last).marginBottom) || 0;
+  var contentBottom = last.getBoundingClientRect().bottom - left.getBoundingClientRect().top + mb;
+  var slack = left.clientHeight - contentBottom;
+  return slack > 2 ? Math.round(slack) : 0;
+}
+/* 画布之外的所有高度（页头 / 控件卡 / 页脚 / 各层内边距）——实测而不是靠一个写死的常数，
+   这样「把参数滑块排成两列」省下来的竖向空间能立刻变成画布高度，而不是被浪费掉。 */
+function chromeH(){
+  var h = 0, el, cs;
+  el = document.querySelector('header.top');
+  if (el){ cs = getComputedStyle(el); h += el.offsetHeight + (parseFloat(cs.marginBottom)||0); }
+  el = document.querySelector('.controls'); if (el) h += el.offsetHeight;
+  el = document.querySelector('.stage');
+  if (el){ cs = getComputedStyle(el);
+    h += (parseFloat(cs.paddingTop)||0) + (parseFloat(cs.paddingBottom)||0) + (parseFloat(cs.marginBottom)||0); }
+  el = document.getElementById('foot');
+  if (el && el.offsetParent !== null){
+    cs = getComputedStyle(el); h += el.offsetHeight + (parseFloat(cs.marginTop)||0);
+  }
+  cs = getComputedStyle(document.body);
+  h += (parseFloat(cs.paddingTop)||0) + (parseFloat(cs.paddingBottom)||0);
+  return Math.round(h) + 2;
+}
+function canvasCap(cssW, cssH){ return Math.min(780, Math.max(cssH, cssW*0.80)); }
+/* capAvail：视口能给画布的最大高度，只用于"初值"——
+   先按它估一个高度，再靠 absorbSlack() 把左栏的相对富余全部吃掉，
+   这样画布最终 = 右栏高度 − 控件卡高度，两者天然等高，页面不会被顶出视口。 */
+var capAvail = 1e9;
+function absorbSlack(cssW, cssH){
+  var slack = measureSlack();
+  if (slack <= 2) return cssH;
+  var next = Math.round(Math.min(cssH + slack, canvasCap(cssW, cssH)));
+  if (next <= cssH) return cssH;
+  applySize(cssW, next);
+  return next;
+}
+
+function resize(){
+  var cssW = Math.max(340, cv.clientWidth || 760);
+  var vh = (window.innerHeight && window.innerHeight > 300) ? window.innerHeight : 940;
+  var cssH;
+  if (stacked()){
+    cssH = Math.round(clamp(cssW*0.58, 340, 600));
+  } else {
+    capAvail = Math.max(330, vh - chromeH());
+    cssH = Math.round(clamp(Math.min(cssW*0.66, capAvail), 330, 660));
+  }
+  applySize(cssW, cssH);
+  cssH = absorbSlack(cssW, cssH);
+  fitViewport(cssW, cssH);
+}
+
+/* ================== 控件 ================== */
+function chip(id, label, on, fn){
+  var b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'chip' + (on ? ' on' : '');
+  b.textContent = label;
+  b.addEventListener('click', function(){
+    fn();
+    renderChips();
+    syncParams();
+    updatePanel();
+  });
+  return b;
+}
+
+function renderChips(){
+  var g, i;
+  g = document.getElementById('gMode');
+  if (g.childNodes.length === 0){
+    g.appendChild(chip('m1','单门', MODE==='single', function(){ MODE='single'; }));
+    g.appendChild(chip('m2','双门', MODE==='double', function(){ MODE='double'; }));
+  }
+  g.childNodes[0].className = 'chip' + (MODE==='single'?' on':'');
+  g.childNodes[1].className = 'chip' + (MODE==='double'?' on':'');
+
+  g = document.getElementById('gMotion');
+  if (g.childNodes.length === 0){
+    g.appendChild(chip('u1','匀速', MOTION==='uniform', function(){ MOTION='uniform'; A=0; }));
+    g.appendChild(chip('u2','匀加速', MOTION==='accel', function(){ MOTION='accel'; A=Math.max(0.80, A); }));
+  }
+  g.childNodes[0].className = 'chip' + (MOTION==='uniform'?' on':'');
+  g.childNodes[1].className = 'chip' + (MOTION==='accel'?' on':'');
+
+  g = document.getElementById('gFlag');
+  var ds = [0.02, 0.04, 0.08];
+  if (g.childNodes.length === 0){
+    for (i=0;i<ds.length;i++) g.appendChild(chip('d'+i, (ds[i]*100).toFixed(0)+' cm', false, (function(val){ return function(){ D=val; }; })(ds[i])));
+  }
+  for (i=0;i<ds.length;i++) g.childNodes[i].className = 'chip' + (Math.abs(D-ds[i])<1e-9?' on':'');
+
+  g = document.getElementById('gPass');
+  if (g.childNodes.length === 0){
+    g.appendChild(chip('p0','原速', !SLOWMO, function(){ SLOWMO=false; }));
+    g.appendChild(chip('p1','慢放', SLOWMO, function(){ SLOWMO=true; }));
+  }
+  g.childNodes[0].className = 'chip' + (!SLOWMO ? ' on' : '');
+  g.childNodes[1].className = 'chip' + (SLOWMO ? ' on' : '');
+}
+
+function syncParams(){
+  var sV0 = document.getElementById('sV0');
+  var sA  = document.getElementById('sA');
+  var sG1 = document.getElementById('sG1');
+  var sG2 = document.getElementById('sG2');
+
+  sV0.value = Math.round(V0*100);
+  sA.value  = Math.round(A*100);
+  sG1.value = Math.round(XG1*1000);
+  sG2.value = Math.round(XG2*1000);
+
+  sA.disabled = (MOTION === 'uniform');
+  document.getElementById('rowA').className = 'prow' + (MOTION==='uniform' ? ' dim' : '');
+  document.getElementById('rowG2').style.display = (MODE === 'double') ? '' : 'none';
+
+  /* 数值只写数字，单位是 HTML 里静态的 TeX（不每帧重排 KaTeX） */
+  document.getElementById('vV0').textContent = V0.toFixed(2);
+  document.getElementById('vA').textContent  = A.toFixed(2);
+  document.getElementById('vG1').textContent = (XG1*100).toFixed(0);
+  document.getElementById('vG2').textContent = (XG2*100).toFixed(0);
+}
+
+function setDemo(next){
+  DEMO = next;
+  document.getElementById('btnAuto').textContent = (DEMO === 'run') ? '暂停演示' : '自动演示全过程';
+}
+
+function bind(){
+  renderChips();
+  syncParams();
+
+  var sV0 = document.getElementById('sV0');
+  var sA  = document.getElementById('sA');
+  var sG1 = document.getElementById('sG1');
+  var sG2 = document.getElementById('sG2');
+  var sT  = document.getElementById('sTime');
+
+  function onParam(){
+    V0 = parseInt(sV0.value,10)/100;
+    A  = parseInt(sA.value,10)/100;
+    XG1 = parseInt(sG1.value,10)/1000;
+    XG2 = parseInt(sG2.value,10)/1000;
+    if (XG2 - XG1 < 0.12) { XG2 = Math.min(0.72, XG1 + 0.12); }
+    if (MOTION === 'uniform') A = 0;
+    MOTION = (A === 0) ? 'uniform' : 'accel';
+    setDemo('idle');
+    tNow = Math.min(tNow, tEnd());
+    syncParams();
+    updatePanel();
+  }
+  sV0.addEventListener('input', onParam);
+  sA.addEventListener('input', onParam);
+  sG1.addEventListener('input', onParam);
+  sG2.addEventListener('input', onParam);
+
+  sT.addEventListener('input', function(){
+    setDemo('idle');
+    tNow = (parseInt(sT.value,10)/1000) * tEnd();
+    updatePanel();
+  });
+
+  document.getElementById('btnAuto').addEventListener('click', function(){
+    if (DEMO === 'run'){ setDemo('hold'); return; }
+    if (DEMO === 'hold'){ setDemo('run'); return; }
+    if (tNow >= tEnd() - 1e-6){ tNow = 0; }
+    setDemo('run');
+  });
+  document.getElementById('btnReset').addEventListener('click', function(){
+    tNow = 0; setDemo('idle'); syncParams(); updatePanel();
+  });
+  document.getElementById('themeBtn').addEventListener('click', function(){
+    setTheme(isLight() ? 'dark' : 'light');
+  });
+  document.getElementById('optWave').addEventListener('change', function(){
+    SHOW_WAVE = this.checked;
+    layout();
+    updatePanel();
+  });
+
+  /* 「显示答案 / 隐藏答案」：只切一个开关，画布每帧重绘会自己跟上 */
+  document.getElementById('btnReveal').addEventListener('click', function(){
+    REVEAL = !REVEAL;
+    this.textContent = REVEAL ? '隐藏答案' : '显示答案';
+    this.setAttribute('aria-pressed', REVEAL ? 'true' : 'false');
+    updatePanel();
+  });
+
+  window.addEventListener('resize', function(){ resize(); updatePanel(); });
+  if (typeof ResizeObserver !== 'undefined'){
+    var lastW = cv.clientWidth;
+    new ResizeObserver(function(){
+      var w = cv.clientWidth;
+      if (Math.abs(w - lastW) > 1){ lastW = w; resize(); updatePanel(); }
+    }).observe(cv);
+  }
+}
+
+/* ================== 主循环 ================== */
+var lastT = 0;
+/* 播放速率：默认原速（1×）；选「慢放」后，滑块靠近光电门时自动减速、
+   过门后逐渐恢复原速（在门中心最慢到原速的 4.5%，约 22 倍慢放）。 */
+function playRate(t){
+  if (!SLOWMO) return 1;
+  var xc = xAt(t);
+  var f = 1;
+  var gs = gateList();
+  for (var i=0;i<gs.length;i++){
+    var dist = Math.abs(xc - gs[i].x);
+    f = Math.min(f, clamp(dist/0.16, 0.045, 1));
+  }
+  return f;
+}
+
+function loop(now){
+  if (!lastT) lastT = now;
+  var dt = Math.min(0.05, (now - lastT)/1000);
+  lastT = now;
+
+  if (DEMO === 'run'){
+    var te = tEnd();
+    tNow += dt * playRate(tNow);
+    if (tNow >= te){ tNow = te; setDemo('idle'); }
+  }
+
+  render();          /* ← 无条件重绘：切主题/改窗口大小都不重绘，全靠这一句刷新 */
+  updatePanel();     /* ← 同样无条件：暂停期间读数不变，但主题切换后仍需刷新 */
+  requestAnimationFrame(loop);
+}
+
+/* ================== 启动 ================== */
+bind();
+resize();
+updatePanel();
+try { setTheme(localStorage.getItem('hm_theme') === 'light' ? 'light' : 'dark'); } catch(e){ setTheme('dark'); }
+requestAnimationFrame(function(){ resize(); updatePanel(); });
+window.addEventListener('load', function(){
+  if (window.renderMathInElement){
+    try {
+      /* 页面加载早期 updatePanel 已经写入过带 $ 的文案（当时 KaTeX 还没就绪），
+         这里清掉签名让它们重渲一遍。 */
+      var stale = document.querySelectorAll('[data-tex]');
+      for (var i=0;i<stale.length;i++) delete stale[i].dataset.tex;
+      renderMathInElement(document.body, {
+        delimiters:[
+          {left:'$$', right:'$$', display:true},
+          {left:'$', right:'$', display:false}
+        ]
+      });
+    } catch(e){}
+  }
+  resize(); updatePanel();
+});
+requestAnimationFrame(loop);
+
+})();
+</script>
+<script defer src="katex/katex.min.js"></script>
+<script defer src="katex/contrib/auto-render.min.js"></script>
+</body>
+</html>
