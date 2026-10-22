@@ -48,7 +48,6 @@ const shown = groups.filter((g) => g.items.length > 0);
             <Card
               href={`${base}${g.href}/${it.id}/`}
               icon={g.icon}
-              external={g.href === 'play'}
               label={topic.name}
               title={it.data.title}
               desc={it.data.summary}

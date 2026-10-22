@@ -28,7 +28,6 @@ const items = sortByDateDesc(await getCollection('animations'));
         <Card
           href={`${base}play/${it.id}/`}
           icon="play"
-          external
           label={topicByName(it.data.topic)?.name ?? it.data.topic}
           title={it.data.title}
           desc={it.data.summary}
