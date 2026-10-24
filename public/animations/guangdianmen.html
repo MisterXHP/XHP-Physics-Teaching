@@ -829,11 +829,6 @@ function drawRail(){
   c.drawImage(softSprite(PAL.cast, 64), -64, -64);
   c.restore();
 
-  /* 地面基线：支脚下的一条浅线，把"高度"衬托出来 */
-  var f0 = lay.p3(0.03, -LEG_H-0.004, 0.14), f1 = lay.p3(TRACK-0.03, -LEG_H-0.004, -0.14);
-  c.strokeStyle = PAL.grid; c.lineWidth = 2;
-  c.beginPath(); c.moveTo(f0.x, f0.y); c.lineTo(f1.x, f1.y); c.stroke();
-
   /* 两条支腿 */
   drawBox(0.102, 0.138, -LEG_H, 0, -0.024, 0.024, PAL.leg, PAL.railEdge);
   drawBox(0.662, 0.698, -LEG_H, 0, -0.024, 0.024, PAL.leg, PAL.railEdge);
