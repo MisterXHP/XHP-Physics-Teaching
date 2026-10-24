@@ -9,8 +9,12 @@ interface Props {
   meta?: string;
   icon?: string;
   external?: boolean;
+  // 封面图：传已经拼好 base 前缀的完整 URL（如 /XHP-Physics-Teaching/covers/xxx.jpg）
+  cover?: string;
+  // 主题 slug（仅用于列表页的页内筛选；不传则不输出属性，其余页面 DOM 不变）
+  dataTopic?: string;
 }
-const { href, label, title, desc, meta, icon, external } = Astro.props;
+const { href, label, title, desc, meta, icon, external, cover, dataTopic } = Astro.props;
 
 // 各内容类型图标的彩色配色
 const tones: Record<string, { fg: string; bg: string }> = {
@@ -27,7 +31,11 @@ const iconStyle = tone ? `color:${tone.fg};background:${tone.bg}` : undefined;
   href={href}
   target={external ? '_blank' : undefined}
   rel={external ? 'noopener' : undefined}
+  data-topic={dataTopic}
 >
+  {cover && (
+    <img class="card__cover" src={cover} alt="" width="1280" height="720" loading="lazy" decoding="async" />
+  )}
   <div class="card__head">
     {icon && (
       <span class="card__icon" style={iconStyle}>

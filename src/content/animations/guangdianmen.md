@@ -5,6 +5,7 @@ summary: 演示光电门如何通过挡光计时测量物体的速度与加速�
 date: 2026-10-02
 featured: true
 embed: animations/guangdianmen.html
+cover: covers/guangdianmen.jpg
 ---
 
 本动画演示**光电门**的测量原理。发光器与接收器之间有一束光，当带有挡光片（宽度 $d$）的物体经过光电门时，光线被遮挡，计时器记录下遮挡的这段时间 $\Delta t$。

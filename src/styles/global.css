@@ -327,6 +327,14 @@ main {
   gap: 20px;
   justify-content: center;
 }
+/* 一行 3 个、固定 3 列（首页两个板块 + 新知动画/教学讲义列表页共用）。
+   全局 .grid 的 auto-fill + minmax(280px,340px) 会按轨道上限 340 计算，
+   3 列需 1060px > 容器 1040px，永远只排出 2 列 —— 故桌面宽度下显式 3 列。
+   920px 以下容器内宽 < 880（3×280+2×20），仍交给全局 auto-fill 自然折行。 */
+.grid3 { grid-template-columns: repeat(auto-fill, minmax(280px, 340px)); }
+@media (min-width: 920px) {
+  .grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 .card {
   display: flex;
   flex-direction: column;
@@ -336,6 +344,7 @@ main {
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  overflow: hidden;   /* 让顶部封面图跟着卡片圆角裁切 */
   color: var(--text);
   transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
@@ -345,7 +354,16 @@ main {
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(59, 130, 246, 0.22);
 }
-/* 图标与标题同一行（图标在标题左侧） */
+/* 封面图：卡片顶部 16:9 满宽图（动画卡片用动画区的真实画面做成） */
+.card__cover {
+  display: block;
+  width: calc(100% + 40px);   /* 抵消 .card 左右 20px 内边距，做成通栏图 */
+  margin: -18px -20px 4px;    /* 上边顶到卡片边缘 */
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--bg-2);
+}
 .card__head {
   display: flex;
   align-items: center;
@@ -441,6 +459,19 @@ main {
   color: var(--primary);
   border-color: var(--primary);
 }
+/* 页内筛选的选中态（aria-current 由脚本切换）：实心胶囊，比 hover 更显著 */
+.topic-bar a[aria-current] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.topic-bar a[aria-current]:hover { color: var(--on-primary); }
+.topic-bar a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* 页内筛选隐藏卡片：.card 的 display:flex 会盖过 [hidden] 的默认 display，必须显式写 */
+.card[hidden] { display: none; }
 
 /* ===== 按钮 ===== */
 .btn {
@@ -722,6 +753,11 @@ main {
   }
   .card {
     padding: 16px 16px;
+  }
+  /* 窄屏卡片内边距 16px，封面图的负边距要跟着改 */
+  .card__cover {
+    width: calc(100% + 32px);
+    margin: -16px -16px 4px;
   }
   .embed-frame iframe {
     height: 70vh;

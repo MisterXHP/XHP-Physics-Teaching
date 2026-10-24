@@ -7,6 +7,12 @@ import { sortByDateDesc, formatDate } from '../../utils';
 
 const base = import.meta.env.BASE_URL;
 const items = sortByDateDesc(await getCollection('lectures'));
+
+/* 页内筛选：胶囊条只渲染「全部 + 当前有讲义的主题」（构建期过滤，无空胶囊）。 */
+const usedTopics = topics.filter((t) =>
+  items.some((it) => topicByName(it.data.topic)?.slug === t.slug)
+);
+const slugOf = (name: string) => topicByName(name)?.slug ?? '';
 ---
 <Base title="教学讲义">
   <header class="list-head">
@@ -14,26 +20,80 @@ const items = sortByDateDesc(await getCollection('lectures'));
     <p class="page-lead">知识点讲解与典型例题，公式排版清晰、可复制。</p>
   </header>
 
-  <nav class="topic-bar">
-    {topics.map((t) => (
-      <a href={`${base}topics/${t.slug}/?from=lectures`}>{t.name}</a>
+  <nav class="topic-bar" data-filter aria-label="按主题筛选">
+    <a href={`?topic=`} data-topic="" aria-current="true" class="active">全部</a>
+    {usedTopics.map((t) => (
+      <a href={`?topic=${t.slug}`} data-topic={t.slug}>{t.name}</a>
     ))}
   </nav>
 
   {items.length === 0 ? (
     <p class="notice">还没有教学讲义。</p>
   ) : (
-    <div class="grid">
-      {items.map((it) => (
-        <Card
-          href={`${base}lectures/${it.id}/`}
-          icon="doc"
-          label={topicByName(it.data.topic)?.name ?? it.data.topic}
-          title={it.data.title}
-          desc={it.data.summary}
-          meta={formatDate(it.data.date)}
-        />
-      ))}
-    </div>
+    <>
+      <div class="grid grid3">
+        {items.map((it) => (
+          <Card
+            href={`${base}lectures/${it.id}/`}
+            icon="doc"
+            label={topicByName(it.data.topic)?.name ?? it.data.topic}
+            title={it.data.title}
+            desc={it.data.summary}
+            meta={formatDate(it.data.date)}
+            dataTopic={slugOf(it.data.topic)}
+          />
+        ))}
+      </div>
+      <p class="notice" data-empty hidden role="status">该主题下暂时没有讲义。</p>
+    </>
   )}
 </Base>
+
+<script>
+  /* 与 animations/index.astro 同一套页内筛选逻辑（两页行为保持一致） */
+  const bar = document.querySelector<HTMLElement>('[data-filter]');
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('.grid .card[data-topic]'));
+  const empty = document.querySelector<HTMLElement>('[data-empty]');
+  if (bar && cards.length) {
+    const links = Array.from(bar.querySelectorAll<HTMLAnchorElement>('a[data-topic]'));
+    const valid = new Set(links.map((a) => a.dataset.topic ?? ''));
+
+    const apply = (topic: string, push: boolean) => {
+      let visible = 0;
+      for (const c of cards) {
+        const show = !topic || c.dataset.topic === topic;
+        c.hidden = !show;
+        if (show) visible++;
+      }
+      if (empty) empty.hidden = visible > 0;
+      for (const a of links) {
+        const on = (a.dataset.topic ?? '') === topic;
+        a.classList.toggle('active', on);
+        if (on) a.setAttribute('aria-current', 'true');
+        else a.removeAttribute('aria-current');
+      }
+      const url = new URL(location.href);
+      if (topic) url.searchParams.set('topic', topic);
+      else url.searchParams.delete('topic');
+      if (push) history.pushState({}, '', url);
+    };
+
+    bar.addEventListener('click', (e) => {
+      const a = (e.target as Element).closest<HTMLAnchorElement>('a[data-topic]');
+      if (!a) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      e.preventDefault();
+      apply(a.dataset.topic ?? '', true);
+    });
+
+    addEventListener('popstate', () => {
+      let t = new URLSearchParams(location.search).get('topic') ?? '';
+      if (!valid.has(t)) t = '';
+      apply(t, false);
+    });
+
+    let t = new URLSearchParams(location.search).get('topic') ?? '';
+    if (!valid.has(t)) t = '';
+    apply(t, false);
+  }
+</script>

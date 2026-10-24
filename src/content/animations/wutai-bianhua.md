@@ -5,6 +5,7 @@ summary: 用分子动理论的可视化模型，直观展示熔化、凝固、�
 date: 2026-09-25
 featured: true
 embed: animations/wutai-bianhua.html
+cover: covers/wutai-bianhua.jpg
 ---
 
 本动画从**分子层面**展示物态变化：可以观察固体中分子的规则排列、液体中分子的相对滑动，以及气体中分子的自由运动。

@@ -5,6 +5,7 @@ summary: 以三维球形地球呈现重力场随高度、纬度的分布，可�
 date: 2026-10-22
 featured: true
 embed: animations/zhonglichang-fenbu.html
+cover: covers/zhonglichang-fenbu.jpg
 ---
 
 本动画把课本上常见的平面示意图换成**三维球形地球**，在同一个画面里比较不同高度 $h$、不同纬度 $\varphi$ 处的重力加速度。

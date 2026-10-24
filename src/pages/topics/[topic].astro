@@ -48,6 +48,11 @@ const shown = groups.filter((g) => g.items.length > 0);
             <Card
               href={`${base}${g.href}/${it.id}/`}
               icon={g.icon}
+              cover={
+                (it.data as { cover?: string }).cover
+                  ? `${base}${(it.data as { cover?: string }).cover}`
+                  : undefined
+              }
               label={topic.name}
               title={it.data.title}
               desc={it.data.summary}

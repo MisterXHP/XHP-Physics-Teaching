@@ -54,7 +54,9 @@
   header.top .titles{min-width:0;}
   header.top h1{font-size:30px;margin:0;letter-spacing:1px;font-weight:700;}
   header.top .sub{margin:6px 0 0;color:var(--text2);font-size:16px;line-height:1.6;}
-  #themeBtn{white-space:nowrap;font-size:15.5px;}
+  /* 页头两个按钮共用同一字号：@media(max-height:940px) 的 .btn 只作用于 .btn，
+     靠 id 特异性把两者一起钉住，才能保证同高 */
+  #themeBtn,#fsBtn{white-space:nowrap;font-size:15.5px;}
 
   /* 底部：作者 / 版本（公开版不显示单位），同字重同颜色 */
   .foot{margin:16px 0 0;padding-top:10px;border-top:1px solid var(--line);
@@ -78,13 +80,13 @@
   /* ===== 右栏第一行：控制卡（窄栏 ⇒ 滑块独占一行，四个按钮 2×2） ===== */
   .controls{padding:12px 16px 13px;}
   .ctrl-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;}
-  .ctrl-head .t1{font-weight:700;font-size:17px;}
+  .ctrl-head .t1{font-weight:700;font-size:19px;}
 
   .params{display:grid;grid-template-columns:1fr;gap:0;margin-top:2px;}
   .prow{display:grid;grid-template-columns:1fr auto;grid-template-areas:"lab val" "sld sld";
         align-items:center;gap:0 9px;padding:2px 0;}
-  .prow .pl{grid-area:lab;font-size:15.5px;color:var(--text2);white-space:nowrap;}
-  .prow .pv{grid-area:val;font-size:15.5px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .prow .pl{grid-area:lab;font-size:17px;color:var(--text2);white-space:nowrap;}
+  .prow .pv{grid-area:val;font-size:17px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .prow input[type=range]{grid-area:sld;width:100%;height:26px;}
   input[type=range]{-webkit-appearance:none;appearance:none;height:30px;background:transparent;margin:0;}
   input[type=range]::-webkit-slider-runnable-track{height:7px;border-radius:4px;background:var(--track);}
@@ -95,9 +97,9 @@
   input[type=range]:disabled{opacity:.4;}
 
   .tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
-  .tools .btn{padding:8px 4px;font-size:15px;text-align:center;}
+  .tools .btn{padding:8px 4px;font-size:16px;text-align:center;}
   .btn{border:1px solid var(--btnline);background:var(--btn);color:var(--text);
-       padding:9px 18px;border-radius:10px;font-size:16px;cursor:pointer;transition:.18s;}
+       padding:9px 18px;border-radius:10px;font-size:17px;cursor:pointer;transition:.18s;}
   .btn:hover{border-color:var(--accent);color:var(--accent);}
   .btn.demo{background:var(--demo);border-color:var(--demo);color:#fff;box-shadow:0 3px 13px rgba(219,39,119,.30);}
   .btn.demo:hover{background:var(--demoHov);border-color:var(--demoHov);color:#fff;}
@@ -115,19 +117,21 @@
      让 fitViewport 削画布失效、页面出现永久滚动条 —— 所以字号一律用 vh 夹逼。
      排布：顶部 g 行紧凑 → 对照表吃掉全部余量 → 公式钉在卡底。
      （V1.5 用 space-between 把四块拉平，1080p 上就是用户说的「右栏太空」。） */
+  /* gap 收一档（原 clamp(4px,1.05vh,13px)）：配合上面 .rd-tr 的让步，给放大后的字号腾高度 */
   .info{padding:12px 15px 12px;display:flex;flex-direction:column;
-        justify-content:flex-start;gap:clamp(4px,1.05vh,13px);overflow:hidden;}
+        justify-content:flex-start;gap:clamp(2px,.85vh,11px);overflow:hidden;}
   /* 除对照表外一律不许被压缩：flex 子项默认 flex-shrink:1，一挤就会让孩子溢出父盒、
      画到邻居身上（1366 上曾出现「地表重力」两行叠字）。 */
   .info>*{flex:0 0 auto;}
-  .rd-h{margin:0;font-size:clamp(14px,1.75vh,18px);font-weight:700;color:var(--text2);
+  /* 字号档位与光电门动画对齐（教室后排可读）：右栏任何一项都不低于 15px。 */
+  .rd-h{margin:0;font-size:clamp(15px,1.95vh,20px);font-weight:700;color:var(--text2);
         letter-spacing:.10em;line-height:1.2;}
-  .rd-k{font-size:clamp(13.5px,1.7vh,16.5px);color:var(--text2);line-height:1.35;}
+  .rd-k{font-size:clamp(15px,1.9vh,18px);color:var(--text2);line-height:1.35;}
   .rd-k i,.rd-sub i{font-style:italic;}
 
-  .rd-v{font-size:clamp(22px,3.5vh,46px);font-weight:700;line-height:1.12;
+  .rd-v{font-size:clamp(24px,3.8vh,48px);font-weight:700;line-height:1.12;
         font-variant-numeric:tabular-nums;letter-spacing:.4px;}
-  .rd-sub{font-size:clamp(13.5px,1.6vh,15.5px);color:var(--text2);}
+  .rd-sub{font-size:clamp(15px,1.8vh,17px);color:var(--text2);}
   .rd-meta{display:flex;align-items:baseline;gap:0;margin-top:-2px;}
   .rd-meta .dot{margin:0 7px;color:var(--text2);opacity:.5;}
 
@@ -135,19 +139,21 @@
   .rd-g{display:flex;align-items:center;justify-content:space-between;gap:10px;
         padding:clamp(6px,1.1vh,14px) clamp(10px,1.1vw,16px);border-radius:10px;
         background:var(--onbg);border:1px solid var(--line);}
-  .rd-g .rd-v{color:var(--accent);font-size:clamp(26px,4.6vh,60px);}
+  .rd-g .rd-v{color:var(--accent);font-size:clamp(28px,4.9vh,62px);}
 
   /* r ↔ GM/r² 对照表（表体由 JS 按 SHELL_R 生成，不再硬编码副本）
      这一块是唯一的弹性块：多余高度全部由行距吸收，不会空出一大片 */
   .rd-tbl{flex:1 1 auto;display:flex;flex-direction:column;
           justify-content:space-evenly;min-height:0;overflow:hidden;}
   .rd-tr{flex:0 0 auto;}
+  /* padding 收一档（原 clamp(3px,.62vh,7px)）：字号抬到 16~21px 后行高变高，
+     行距让出来的高度正好补回表格，5 行合计省约 13px，1366×768 才不会裁掉末行。 */
   .rd-tr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
-         padding:clamp(3px,.62vh,7px) 0;border-bottom:1px solid var(--line);
-         font-size:clamp(15px,1.85vh,19px);font-variant-numeric:tabular-nums;line-height:1.3;}
+         padding:clamp(1px,.42vh,5px) 0;border-bottom:1px solid var(--line);
+         font-size:clamp(16px,2.05vh,21px);font-variant-numeric:tabular-nums;line-height:1.3;}
   .rd-tr>span:last-child{font-weight:700;text-align:right;}
   .rd-tr.hd{border-bottom-color:var(--text2);color:var(--text2);
-            font-size:clamp(13.5px,1.65vh,16px);}
+            font-size:clamp(15px,1.85vh,18px);}
   .rd-tr.hd>span:last-child{font-weight:400;}
   .rd-surf{display:flex;flex-direction:column;gap:0;
            padding-top:6px;border-top:1px solid var(--line);}
@@ -160,15 +166,15 @@
             display:grid;grid-template-columns:1fr;gap:clamp(2px,.8vh,10px);}
   .formulas .frow{display:flex;align-items:center;gap:10px;color:var(--text);
                   min-height:clamp(40px,5.4vh,62px);}
-  .formulas .fl{flex:0 0 74px;color:var(--text2);font-size:clamp(14px,1.7vh,16px);}
+  .formulas .fl{flex:0 0 74px;color:var(--text2);font-size:clamp(15px,1.85vh,17.5px);}
   .formulas .fx{flex:1;min-width:0;white-space:nowrap;}
-  .katex{font-size:clamp(17px,2.25vh,24px);}
+  .katex{font-size:clamp(18px,2.45vh,25px);}
 
   /* 公式兜底：没装成 KaTeX（或只拷走 .html 没带 katex/）时，用 CSS 手排出 LaTeX 的样子。
      必须是 inline-block 而不是 flex —— flex 会把词间的空白文本节点丢掉，公式挤成 g=GM/r²。 */
   .mfb{display:inline-block;white-space:nowrap;
        font-family:"Times New Roman",Times,"PingFang SC","Microsoft YaHei",serif;
-       font-size:clamp(17px,2.25vh,24px);line-height:1.4;}
+       font-size:clamp(18px,2.45vh,25px);line-height:1.4;}
   .mfb i{font-style:italic;padding:0 .02em;}
   .mfb sup{font-size:.68em;line-height:0;vertical-align:.46em;}
   .mfb .fr{display:inline-flex;flex-direction:column;align-items:center;
@@ -178,7 +184,7 @@
   .fx.katexed .mfb{display:none;}
 
   /* 手机 / 平板提示：桌面端隐藏 */
-  .pchint{display:none;margin:12px 0 0;text-align:center;font-size:14px;color:var(--text2);}
+  .pchint{display:none;margin:12px 0 0;text-align:center;font-size:15px;color:var(--text2);}
   .pchint .pc-s{display:none;}
   @media (max-width:880px){ .pchint{display:block;} }
   @media (max-width:389px){ .pchint .pc-s{display:inline;} .pchint .pc-l{display:none;} }
@@ -201,24 +207,24 @@
     .rd-tr{padding:2px 0;}
     .formulas{padding-top:6px;}
     .formulas .frow{min-height:36px;}
-    .katex,.mfb{font-size:17px;}
+    .katex,.mfb{font-size:18px;}
     .controls{padding:9px 13px 10px;}
     .tools{margin-top:9px;}
-    .btn{padding:7px 15px;font-size:15px;}
+    .btn{padding:7px 15px;font-size:16px;}
   }
   /* 768 高（1366×768 / 1024×768）是最紧的一档：数据卡只有 ~377px。
      字号已经被抬到 15px 起，这里改为压「行距与间距」把它们腾出来，
      不再靠缩字号换空间。 */
   @media (max-height:820px){
-    .info{padding:9px 13px 8px;gap:2px;}
-    .rd-g{padding:4px 10px;}
-    .rd-tr{padding:1.5px 0;}
-    .rd-surf{padding-top:4px;}
-    .formulas{padding-top:5px;}
-    .formulas .frow{min-height:32px;}
+    .info{padding:7px 13px 6px;gap:2px;}
+    .rd-g{padding:2px 10px;}
+    .rd-tr{padding:.5px 0;}
+    .rd-surf{padding-top:2px;}
+    .formulas{padding-top:2px;}
+    .formulas .frow{min-height:30px;}
     /* 控制卡让位：它矮 1px，数据卡就高 1px，比压数据字号划算 */
     .ctrl-head{margin-bottom:5px;}
-    .ctrl-head .t1{font-size:18px;}
+    .ctrl-head .t1{font-size:19px;}
     .tools{margin-top:8px;}
     .btn{padding:6px 15px;}
     .prow input[type=range]{height:24px;}
@@ -232,6 +238,28 @@
     header.top .sub{font-size:15px;}
     .info{padding:14px 16px 16px;}
   }
+
+  /* ===== 页头右侧按钮组：主题 + 全屏 =====
+     flex:0 0 auto + nowrap：整组不缩不拆行，宽度不够时由 header 的 flex-wrap 整组换行；
+     两按钮同为 .btn ⇒ padding/圆角/字号同源，天然同高；
+     [hidden] 必须显式覆盖：作者样式的 display 会盖掉 UA 的 [hidden]{display:none} */
+  .hdr-tools{display:flex;align-items:stretch;gap:8px;flex:0 0 auto;flex-wrap:nowrap;}
+  .hdr-tools .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;}
+  .hdr-tools .btn svg{width:16px;height:16px;flex:none;}
+  .hdr-tools .btn[hidden]{display:none;}
+  .hdr-tools .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .hdr-tools #fsBtn .ico-in{display:none;}
+  .hdr-tools #fsBtn[aria-pressed="true"] .ico-out{display:none;}
+  .hdr-tools #fsBtn[aria-pressed="true"] .ico-in{display:block;}
+  .hdr-tools #fsBtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);}
+  /* 窄屏：先收内边距，再窄就只留箭头（主题按钮文字必须保留） */
+  @media (max-width:420px){
+    .hdr-tools{gap:6px;}
+    .hdr-tools .btn{padding-left:11px;padding-right:11px;}
+  }
+  @media (max-width:360px){
+    .hdr-tools #fsBtn .lbl{display:none;}
+  }
 </style>
 </head>
 <body>
@@ -241,7 +269,22 @@
       <h1>重力场分布</h1>
       <p class="sub">三维球形地球 —— 看清重力场随高度、纬度的变化；可拖动旋转、滚轮缩放</p>
     </div>
-    <button class="btn" id="themeBtn" type="button">☀ 浅色模式</button>
+    <div class="hdr-tools">
+      <button class="btn" id="themeBtn" type="button" title="切换深浅主题">🌙 深色模式</button>
+      <button class="btn" id="fsBtn" type="button" aria-pressed="false" title="全屏显示">
+        <svg class="ico-out" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M9 4H5a1 1 0 0 0-1 1v4"/><path d="M15 4h4a1 1 0 0 1 1 1v4"/>
+          <path d="M20 15v4a1 1 0 0 1-1 1h-4"/><path d="M4 15v4a1 1 0 0 0 1 1h4"/>
+        </svg>
+        <svg class="ico-in" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M20 9V5a1 1 0 0 0-1-1h-4"/>
+          <path d="M15 20h4a1 1 0 0 0 1-1v-4"/><path d="M9 20H5a1 1 0 0 1-1-1v-4"/>
+        </svg>
+        <span class="lbl">全屏</span>
+      </button>
+    </div>
   </header>
 
   <div class="cols">
@@ -354,7 +397,11 @@ var THEMES = {
     wire:'rgba(165,205,255,0.22)', lat:'rgba(165,205,255,0.16)',
     arrow:'#7fb0ff', probe:'#ff5f9e', equat:'#ffd257',
     hud:'#c9d6ea', hud2:'#8fa3c0', dim:'rgba(143,163,192,0.62)',
-    shade:'rgba(2,8,20,0.46)', texVeil:null
+    shade:'rgba(2,8,20,0.46)', texVeil:null,
+    /* 质感升级新增：星空（starN 密度系数）+ 暗角 + 地球外柔曦 + HUD 描边光晕 */
+    star:'#ffffff', star2:'#cfe0ff', starN:1,
+    vin:'rgba(2,8,20,.32)', earthGlow:'rgba(90,150,255,.16)',
+    hudHalo:'rgba(8,14,28,.85)', rimHi:'rgba(255,255,255,.22)'
   },
   light: {
     cvBg1:'#f4f7fb', cvBg2:'#e9eff7',
@@ -363,12 +410,34 @@ var THEMES = {
     wire:'rgba(30,70,140,0.22)', lat:'rgba(30,70,140,0.15)',
     arrow:'#1d4ed8', probe:'#d6316f', equat:'#c2410c',
     hud:'#33415c', hud2:'#5b6672', dim:'rgba(91,102,114,0.6)',
-    shade:'rgba(24,48,90,0.28)', texVeil:'rgba(255,255,255,0.30)'
+    shade:'rgba(24,48,90,0.28)', texVeil:'rgba(255,255,255,0.30)',
+    /* 质感升级新增（浅色：星星极低密度近隐形、暗角更弱、光晕改浅） */
+    star:'#ffffff', star2:'#dbe7fb', starN:0.35,
+    vin:'rgba(40,60,90,.10)', earthGlow:'rgba(120,160,230,.20)',
+    hudHalo:'rgba(255,255,255,.90)', rimHi:'rgba(255,255,255,.55)'
   }
 };
 
 var PAL = THEMES.dark;
 var FONT = '"Times New Roman",Times,"PingFang SC","Microsoft YaHei",sans-serif';
+
+function isLight(){ return PAL === THEMES.light; }
+/* 径向柔光离屏精灵（缓存）：球外柔曦等一次性大光斑用，避免每帧建渐变 */
+var __spr = {};
+function softSprite(col, r){
+  var k = col + '|' + r;
+  if (!__spr[k]){
+    var s = document.createElement('canvas');
+    s.width = s.height = r*2;
+    var sc = s.getContext('2d');
+    var g = sc.createRadialGradient(r, r, 0, r, r, r);
+    g.addColorStop(0, col);
+    g.addColorStop(1, 'rgba(0,0,0,0)');   /* 全透明停靠点：只借 alpha，不引入色相 */
+    sc.fillStyle = g; sc.fillRect(0, 0, r*2, r*2);
+    __spr[k] = s;
+  }
+  return __spr[k];
+}
 
 function setTheme(light){
   applyTheme(light);
@@ -836,6 +905,10 @@ function drawFieldShells(back){
 function drawGlobe(){
   var Rp = globeRp(), cx = V.cx, cy = V.cy, i, k;
 
+  /* 球外柔曦：贴在星空上的一圈大气辉光（半径随球走，key 含 Rp 自动重建） */
+  var GR = Math.round(Rp * 1.3);
+  ctx.drawImage(softSprite(PAL.earthGlow, GR), cx - GR, cy - GR, GR*2, GR*2);
+
   ctx.textBaseline = 'alphabetic';
   ctx.save();
   ctx.beginPath(); ctx.arc(cx, cy, Rp, 0, TWO_PI); ctx.clip();
@@ -930,6 +1003,9 @@ function drawGlobe(){
   /* 大气边缘 */
   ctx.strokeStyle = PAL.earthEdge; ctx.lineWidth = 1.4;
   ctx.beginPath(); ctx.arc(cx, cy, Rp, 0, TWO_PI); ctx.stroke();
+  /* 内侧受光弧：贴着大气边内圈的 1px 高光，球体更"鼓" */
+  ctx.strokeStyle = PAL.rimHi; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, Rp - 1.2, 0, TWO_PI); ctx.stroke();
 
   /* 赤道标签（摆在赤道弧的最左端，靠左缘时改放右侧） */
   var labPt = (eqFade > 0.5) ? leftAll : leftMost;    /* 补成整圈后指向外圈最左点 */
@@ -959,12 +1035,11 @@ function drawGlobe(){
     ctx.restore();
   }
   ctx.save();
-  ctx.shadowColor = PAL.cvBg1; ctx.shadowBlur = 5;
   ctx.font = '400 14px ' + FONT; ctx.fillStyle = PAL.hud2;
   ctx.textAlign = 'right';
-  /* 放大到极点跑出画布时就不画了，免得半个字母挂在边上 */
-  if (drawN && aN.y > 18 && aN.x - 13 > 12) ctx.fillText('N', aN.x - 13, aN.y - 5);
-  if (drawS && aS.y < H - 10 && aS.x - 13 > 12) ctx.fillText('S', aS.x - 13, aS.y + 15);
+  /* 放大到极点跑出画布时就不画了，免得半个字母挂在边上（描边光晕替代 shadow） */
+  if (drawN && aN.y > 18 && aN.x - 13 > 12) haloText('N', aN.x - 13, aN.y - 5);
+  if (drawS && aS.y < H - 10 && aS.x - 13 > 12) haloText('S', aS.x - 13, aS.y + 15);
   ctx.restore();
 }
 
@@ -974,7 +1049,18 @@ function probeDir(){
   var phi = probe.phi * Math.PI / 180;
   return v3(Math.cos(phi)*Math.cos(LAM0), Math.sin(phi), Math.cos(phi)*Math.sin(LAM0));
 }
-function drawProbe3D(){
+/* 探测点是否朝向相机。
+   ⚠️ 截面视角下这个判据是退化的：经线截面 tilt=0、赤道截面 tilt=1.50，
+      探测点恰好落在截面里 ⇒ applyCam 后的 z 恒为 0（只剩 ±1e-17 的浮点残差），
+      符号随纬度/机器而变 —— 曾表现为「经线截面 φ=±90° 时探测点变空心、g 值消失」。
+      所以截面模式一律按可见处理；自由视角用 -1e-9 容差把噪声挡掉。 */
+function probeFront(){
+  if (secMode()) return true;
+  return applyCam(vmul(probeDir(), probeR())).z >= -1e-9;
+}
+/* front=false 只影响矢量箭头（背面的箭头画在球前就成了「穿透球体」的假象）；
+   探测点与 g 读数任何视角都画 —— 探测点恒为实心圆点（2026-10-24 定）。 */
+function drawProbe3D(front){
   var r = probeR(), d = probeDir();
   var gW = weightMag(RE + probe.h, probe.phi);
   var len = LEN0 * gW / G0;
@@ -984,21 +1070,23 @@ function drawProbe3D(){
   var T = P(vmul(d, r + 0.045));           /* 头：指向地心 */
 
   /* 给箭头一圈背景色柔光，压在贴图上才看得清 */
-  ctx.save();
-  ctx.shadowColor = PAL.cvBg1; ctx.shadowBlur = 5;
-  arrowSeg(A.x, A.y, T.x, T.y, PAL.arrow, 3.0, true);
-  ctx.restore();
+  if (front){
+    ctx.save();
+    ctx.shadowColor = PAL.hudHalo; ctx.shadowBlur = 5;
+    arrowSeg(A.x, A.y, T.x, T.y, PAL.arrow, 3.0, true);
+    ctx.restore();
+  }
 
   /* 探测点：粉红实心圆点（不套白边 —— 白圈会把小圆点读成"空心圈"）。
      只加一圈底色柔光，压在明亮的云层／陆地上才能和贴图分开。 */
   ctx.save();
-  ctx.shadowColor = PAL.cvBg1; ctx.shadowBlur = 7;
+  ctx.shadowColor = PAL.hudHalo; ctx.shadowBlur = 5;
   ctx.fillStyle = PAL.probe;
   ctx.beginPath(); ctx.arc(D.x, D.y, 6.8, 0, TWO_PI); ctx.fill();
   ctx.restore();
 
   /* 读数沿「地心→探测点」往外摆，避开箭头与点；被画布边缘挡住就改放探测点旁边 */
-  var segs = [{ t:'g', i:true }, { t:' = ' + gW.toFixed(2) }];
+  var segs = [{ t:'g', i:true, s:18 }, { t:' = ' + gW.toFixed(2), s:18 }];
   var sw = segW(segs);
   var maxX = W - 12;
   var ox = D.x - V.cx, oy = D.y - V.cy, ol = Math.sqrt(ox*ox + oy*oy);
@@ -1028,46 +1116,40 @@ function renderSphere(){
   drawFieldShells(true);     /* 1. 背面箭头：随后被地球本体遮住，形成遮挡感 */
   drawGlobe();               /* 2. 地球本体（贴图 + 经纬网 + 赤道） */
   drawFieldShells(false);    /* 3. 正面箭头：更亮更粗，压在地球之上 */
-  /* 4. 探测点：转到地球背面时只留一个空心圈，不做「穿透球体」的假象 */
-  if (applyCam(vmul(probeDir(), probeR())).z < 0){
-    var Dg = P(vmul(probeDir(), probeR()));
-    ctx.save();
-    ctx.globalAlpha = 0.65;
-    ctx.strokeStyle = PAL.probe; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.arc(Dg.x, Dg.y, 5, 0, TWO_PI); ctx.stroke();
-    ctx.restore();
-  } else {
-    drawProbe3D();
-  }
+  /* 4. 探测点：任何视角都画，且恒为实心圆点（含 g 读数）。
+        旧版在背面改画空心圈、连 g 值一起丢掉 —— 截面视角下 z 判据退化，
+        会出现「探测点莫名变空心、读数消失」，2026-10-24 起取消这条分支。 */
+  drawProbe3D(probeFront());
 }
 
-/* ================= HUD（画布内只剩标题/提示/图例/自转状态） ================= */
-function hudShadow(on){
-  if (on){ ctx.shadowColor = PAL.cvBg1; ctx.shadowBlur = 7; }
-  else { ctx.shadowColor = 'rgba(0,0,0,0)'; ctx.shadowBlur = 0; }
+/* ================= HUD（画布内只剩标题/提示/图例/自转状态） =================
+   旧版用 shadowBlur 光晕（shadowColor=cvBg1），在星空/复杂背景上会显脏 ——
+   改为描边光晕 haloText：先用 hudHalo 色描一圈 3px，再填正文。 */
+function haloText(t, x, y){
+  ctx.save();
+  ctx.strokeStyle = PAL.hudHalo; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  ctx.strokeText(t, x, y);
+  ctx.restore();
+  ctx.fillText(t, x, y);
 }
 function renderHUD(){
   var sec = secMode();
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
-  hudShadow(true);
   ctx.font = '700 17px ' + FONT; ctx.fillStyle = PAL.hud;
-  ctx.fillText('球形地球的重力场（三维）', 14, 26);
+  haloText('球形地球的重力场（三维）', 14, 26);
   ctx.font = '400 15px ' + FONT; ctx.fillStyle = PAL.hud2;
-  ctx.fillText('径向：方向指向地心，离地心越远越短', 14, 47);
+  haloText('径向：方向指向地心，离地心越远越短', 14, 47);
   ctx.font = '400 14px ' + FONT; ctx.fillStyle = PAL.dim;
-  ctx.fillText(sec
+  haloText(sec
     ? (curPreset === 'eq' ? '赤道截面 · 仅显示赤道面上的场（已停转）'
                           : '经线截面 · 仅显示探测点所在子午面上的场（已停转）')
     : '拖动旋转 · 滚轮缩放 · 拖红点改高度／纬度', 14, 68);
-  hudShadow(false);
 
   /* 右下：自转状态 */
-  hudShadow(true);
   ctx.textAlign = 'right'; ctx.font = '400 14px ' + FONT; ctx.fillStyle = PAL.hud2;
-  ctx.fillText(sec ? '截面视角 · 地球与场已停转'
-                   : (spinOn ? '地球与场同步自转 · 60 s/周' : '自转已停止'), W - 14, H - 14);
-  hudShadow(false);
+  haloText(sec ? '截面视角 · 地球与场已停转'
+               : (spinOn ? '地球与场同步自转 · 60 s/周' : '自转已停止'), W - 14, H - 14);
 
   /* 左下：图例（超出宽度自动舍掉尾项） */
   var items = [
@@ -1077,16 +1159,59 @@ function renderHUD(){
     (sec ? { t:'仅显示截面内的场', c:PAL.hud2 } : { t:'近亮远暗＝深度', c:PAL.hud2 })
   ];
   var lx = 14, ly2 = H - 14;
-  hudShadow(true);
   for (var i = 0; i < items.length; i++){
     ctx.font = '400 14px ' + FONT;
     var tw = ctx.measureText(items[i].t).width;
     if (lx + tw > W - 205) break;
     ctx.textAlign = 'left'; ctx.fillStyle = items[i].c;
-    ctx.fillText(items[i].t, lx, ly2);
+    haloText(items[i].t, lx, ly2);
     lx += tw + 16;
   }
-  hudShadow(false);
+}
+
+/* ================= 星空背景（2026-10-24 新增） =================
+   静态星层离屏缓存（key = 宽|高|主题）+ 少量缓慢闪烁星。
+   每帧只有 1 次 drawImage + ~10 次小圆，不新建渐变；时间用 performance.now()。
+   底部图例区（40px）降密度到 25%，浅色主题 starN≈0（调色板控制）。 */
+var __stars = null;
+function buildStars(){
+  var key = W + '|' + H + '|' + (isLight ? 'l' : 'd');
+  if (__stars && __stars.key === key) return;
+  var cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  var c = cv.getContext('2d');
+  var rnd = (function(){           /* 固定种子的伪随机：同尺寸下星图稳定不跳变 */
+    var s = 20261024;
+    return function(){ s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  })();
+  var n = Math.round(W * H / 9000 * PAL.starN);
+  var twk = [];
+  for (var i = 0; i < n; i++){
+    var x = rnd() * W, y = rnd() * H;
+    var big = rnd() < 0.15;
+    var r = big ? 1.2 + rnd() * 0.9 : 0.45 + rnd() * 0.65;
+    /* 底部图例区降密度：只保留 ~25%，给图例留出干净的底 */
+    if (y > H - 40 && rnd() > 0.25) continue;
+    c.globalAlpha = 0.35 + rnd() * 0.55;
+    c.fillStyle = big ? PAL.star2 : PAL.star;
+    c.beginPath(); c.arc(x, y, r, 0, TWO_PI); c.fill();
+    if (twk.length < 10 && big && y < H - 60) twk.push({ x:x, y:y, r:r + 0.7, ph:rnd() * TWO_PI });
+  }
+  __stars = { key:key, cv:cv, twk:twk };
+}
+function drawStars(){
+  buildStars();
+  ctx.drawImage(__stars.cv, 0, 0);
+  var t = performance.now() / 1000;
+  ctx.save();
+  for (var i = 0; i < __stars.twk.length; i++){
+    var s = __stars.twk[i];
+    var a = 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(t * 0.9 + s.ph));   /* 缓慢正弦呼吸 */
+    ctx.globalAlpha = a * 0.7;
+    ctx.fillStyle = PAL.star;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TWO_PI); ctx.fill();
+  }
+  ctx.restore();
 }
 
 /* ================= 主渲染 ================= */
@@ -1095,6 +1220,16 @@ function render(){
   var g = ctx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, PAL.cvBg1); g.addColorStop(1, PAL.cvBg2);
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  drawStars();
+  /* 暗角：压住四角（星星之后、地球之前 —— 不影响遮挡关系） */
+  var vk = W + '|' + H + '|' + (isLight ? 'l' : 'd');
+  if (!render.__v || render.__v.k !== vk){
+    var vg = ctx.createRadialGradient(W/2, H*0.44, Math.min(W,H)*0.36, W/2, H*0.5, Math.max(W,H)*0.76);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, PAL.vin);
+    render.__v = { k:vk, g:vg };
+  }
+  ctx.fillStyle = render.__v.g; ctx.fillRect(0, 0, W, H);
   renderSphere();
   renderHUD();
   updateReadouts();
@@ -1348,6 +1483,55 @@ $('themeBtn').addEventListener('click', function(){
   setTheme(!document.body.classList.contains('light'));
 });
 
+/* ===== 页头「全屏 / 退出全屏」 =====
+   对整页 documentElement 生效。全屏会改变 innerHeight 与画布可用宽度，
+   必须调用本页自己的尺寸函数重算；过渡动画期间 innerHeight 可能晚一帧更新，
+   故 rAF 与 260ms 各量一次。 */
+var RS = onResize;
+var fsBtn = $('fsBtn');
+
+function fsIsOn(){
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+function fsSync(){
+  if (!fsBtn) return;
+  var on = fsIsOn(), lb = fsBtn.querySelector('.lbl');
+  if (lb) lb.textContent = on ? '退出全屏' : '全屏';
+  fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  fsBtn.title = on ? '退出全屏（Esc 也可退出）' : '全屏显示';
+}
+function fsReflow(){
+  requestAnimationFrame(function(){ RS(); setTimeout(RS, 260); });
+}
+function fsToggle(){
+  try{
+    if (!fsIsOn()){
+      var el = document.documentElement;
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (!req) return;
+      var p = req.call(el);
+      if (p && p.catch) p.catch(function(){});
+    } else {
+      var ex = document.exitFullscreen || document.webkitExitFullscreen;
+      if (!ex) return;
+      var q = ex.call(document);
+      if (q && q.catch) q.catch(function(){});
+    }
+  }catch(e){}
+}
+if (fsBtn){
+  var fsOK = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled) &&
+             !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+  if (!fsOK){
+    fsBtn.hidden = true;      /* 宿主未给 allow="fullscreen" 时优雅降级，不留死按钮 */
+  } else {
+    fsBtn.addEventListener('click', fsToggle);
+    document.addEventListener('fullscreenchange', function(){ fsSync(); fsReflow(); });
+    document.addEventListener('webkitfullscreenchange', function(){ fsSync(); fsReflow(); });
+    fsSync();
+  }
+}
+
 /* ================= 署名行 ================= */
 (function(){
   var parts = [AUTHOR_CFG.author];
@@ -1445,7 +1629,7 @@ function applyTheme(light){
   document.body.classList.toggle('light', light);
   PAL = light ? THEMES.light : THEMES.dark;
   var b = $('themeBtn');
-  if (b) b.textContent = light ? '🌙 深色模式' : '☀ 浅色模式';
+  if (b) b.textContent = light ? '☀️ 浅色模式' : '🌙 深色模式';  /* 显示当前模式，与站点顶栏一致 */
 }
 (function(){
   var t = null;

@@ -7,6 +7,13 @@ import { sortByDateDesc, formatDate } from '../../utils';
 
 const base = import.meta.env.BASE_URL;
 const items = sortByDateDesc(await getCollection('animations'));
+
+/* 页内筛选：胶囊条只渲染「全部 + 当前有动画的主题」（构建期过滤，无空胶囊）。
+   卡片的 topic 存中文名，经 topicByName 映射成 slug 供脚本匹配。 */
+const usedTopics = topics.filter((t) =>
+  items.some((it) => topicByName(it.data.topic)?.slug === t.slug)
+);
+const slugOf = (name: string) => topicByName(name)?.slug ?? '';
 ---
 <Base title="新知动画">
   <header class="list-head">
@@ -14,26 +21,84 @@ const items = sortByDateDesc(await getCollection('animations'));
     <p class="page-lead">可以动手操作的物理模拟。点击卡片即可全屏打开，用鼠标和滑块探索其中的物理规律。</p>
   </header>
 
-  <nav class="topic-bar">
-    {topics.map((t) => (
-      <a href={`${base}topics/${t.slug}/?from=animations`}>{t.name}</a>
+  <nav class="topic-bar" data-filter aria-label="按主题筛选">
+    <a href={`?topic=`} data-topic="" aria-current="true" class="active">全部</a>
+    {usedTopics.map((t) => (
+      <a href={`?topic=${t.slug}`} data-topic={t.slug}>{t.name}</a>
     ))}
   </nav>
 
   {items.length === 0 ? (
     <p class="notice">还没有新知动画。</p>
   ) : (
-    <div class="grid">
-      {items.map((it) => (
-        <Card
-          href={`${base}play/${it.id}/`}
-          icon="play"
-          label={topicByName(it.data.topic)?.name ?? it.data.topic}
-          title={it.data.title}
-          desc={it.data.summary}
-          meta={formatDate(it.data.date)}
-        />
-      ))}
-    </div>
+    <>
+      <div class="grid grid3">
+        {items.map((it) => (
+          <Card
+            href={`${base}play/${it.id}/`}
+            icon="play"
+            cover={it.data.cover ? `${base}${it.data.cover}` : undefined}
+            label={topicByName(it.data.topic)?.name ?? it.data.topic}
+            title={it.data.title}
+            desc={it.data.summary}
+            meta={formatDate(it.data.date)}
+            dataTopic={slugOf(it.data.topic)}
+          />
+        ))}
+      </div>
+      <p class="notice" data-empty hidden role="status">该主题下暂时没有动画。</p>
+    </>
   )}
 </Base>
+
+<script>
+  /* 胶囊页内筛选：点击 → 卡片就地显隐 + URL 写 ?topic=<slug>（可分享/可回退）。
+     不用 from 参数（Base.astro 会把它吃进 html[data-from] 触发另一套隐藏规则）。 */
+  const bar = document.querySelector<HTMLElement>('[data-filter]');
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('.grid .card[data-topic]'));
+  const empty = document.querySelector<HTMLElement>('[data-empty]');
+  if (bar && cards.length) {
+    const links = Array.from(bar.querySelectorAll<HTMLAnchorElement>('a[data-topic]'));
+    const valid = new Set(links.map((a) => a.dataset.topic ?? ''));
+
+    const apply = (topic: string, push: boolean) => {
+      let visible = 0;
+      for (const c of cards) {
+        const show = !topic || c.dataset.topic === topic;
+        c.hidden = !show;
+        if (show) visible++;
+      }
+      if (empty) empty.hidden = visible > 0;
+      for (const a of links) {
+        const on = (a.dataset.topic ?? '') === topic;
+        a.classList.toggle('active', on);
+        if (on) a.setAttribute('aria-current', 'true');
+        else a.removeAttribute('aria-current');
+      }
+      const url = new URL(location.href);
+      if (topic) url.searchParams.set('topic', topic);
+      else url.searchParams.delete('topic');
+      if (push) history.pushState({}, '', url);
+    };
+
+    /* 左键原地筛选；ctrl/cmd/shift/中键保持浏览器原生新标签行为 */
+    bar.addEventListener('click', (e) => {
+      const a = (e.target as Element).closest<HTMLAnchorElement>('a[data-topic]');
+      if (!a) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      e.preventDefault();
+      apply(a.dataset.topic ?? '', true);
+    });
+
+    addEventListener('popstate', () => {
+      let t = new URLSearchParams(location.search).get('topic') ?? '';
+      if (!valid.has(t)) t = '';
+      apply(t, false);
+    });
+
+    /* 首载按 URL 还原；非法 slug 按「全部」处理 */
+    let t = new URLSearchParams(location.search).get('topic') ?? '';
+    if (!valid.has(t)) t = '';
+    apply(t, false);
+  }
+</script>

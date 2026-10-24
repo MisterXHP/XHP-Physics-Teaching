@@ -83,7 +83,9 @@
   header.top .titles{min-width:0;}
   header.top h1{font-size:30px;margin:0;letter-spacing:1px;font-weight:700;}
   header.top .sub{margin:6px 0 0;color:var(--text2);font-size:16px;line-height:1.6;}
-  #themeBtn{white-space:nowrap;font-size:15.5px;}
+  /* 页头两个按钮共用同一字号：@media(max-height:940px) 的 .btn 只作用于 .btn，
+     靠 id 特异性把两者一起钉住，才能保证同高 */
+  #themeBtn,#fsBtn{white-space:nowrap;font-size:15.5px;}
 
   /* ===== 底部：作者 / 单位 / 版本 =====
      三项统一常规字重、同一颜色 —— 页脚只承担署名功能，
@@ -233,6 +235,28 @@
       .formulas .fl{flex:0 0 86px;color:var(--text2);font-size:14px;}
       .formulas .fx{flex:1;min-width:0;}
       .katex{font-size:1.06em;}
+
+      /* ===== 页头右侧按钮组：主题 + 全屏 =====
+         flex:0 0 auto + nowrap：整组不缩不拆行，宽度不够时由 header 的 flex-wrap 整组换行；
+         两按钮同为 .btn ⇒ padding/圆角/字号同源，天然同高；
+         [hidden] 必须显式覆盖：作者样式的 display 会盖掉 UA 的 [hidden]{display:none} */
+      .hdr-tools{display:flex;align-items:stretch;gap:8px;flex:0 0 auto;flex-wrap:nowrap;}
+      .hdr-tools .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;}
+      .hdr-tools .btn svg{width:16px;height:16px;flex:none;}
+      .hdr-tools .btn[hidden]{display:none;}
+      .hdr-tools .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+      .hdr-tools #fsBtn .ico-in{display:none;}
+      .hdr-tools #fsBtn[aria-pressed="true"] .ico-out{display:none;}
+      .hdr-tools #fsBtn[aria-pressed="true"] .ico-in{display:block;}
+      .hdr-tools #fsBtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);}
+      /* 窄屏：先收内边距，再窄就只留箭头（主题按钮文字必须保留） */
+      @media (max-width:420px){
+        .hdr-tools{gap:6px;}
+        .hdr-tools .btn{padding-left:11px;padding-right:11px;}
+      }
+      @media (max-width:360px){
+        .hdr-tools #fsBtn .lbl{display:none;}
+      }
     </style>
 </head>
 <body>
@@ -244,7 +268,22 @@
       <h1>物态变化的微观模型</h1>
       <p class="sub">拖动温度滑块观察：固态 → 固液共存 → 液态 → 液气共存 → 气态 → 等离子体</p>
     </div>
-    <button class="btn" id="themeBtn" type="button">☀ 浅色模式</button>
+    <div class="hdr-tools">
+      <button class="btn" id="themeBtn" type="button" title="切换深浅主题">🌙 深色模式</button>
+      <button class="btn" id="fsBtn" type="button" aria-pressed="false" title="全屏显示">
+        <svg class="ico-out" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M9 4H5a1 1 0 0 0-1 1v4"/><path d="M15 4h4a1 1 0 0 1 1 1v4"/>
+          <path d="M20 15v4a1 1 0 0 1-1 1h-4"/><path d="M4 15v4a1 1 0 0 0 1 1h4"/>
+        </svg>
+        <svg class="ico-in" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M20 9V5a1 1 0 0 0-1-1h-4"/>
+          <path d="M15 20h4a1 1 0 0 0 1-1v-4"/><path d="M9 20H5a1 1 0 0 1-1-1v-4"/>
+        </svg>
+        <span class="lbl">全屏</span>
+      </button>
+    </div>
   </header>
 
   <div class="cols">
@@ -394,6 +433,9 @@ var THEMES = {
     bSolid:'rgba(91,155,255,', bLiq:'rgba(45,212,191,',
     /* 画布内文字底板：2026-09-26 按用户要求去掉底纹，以下两项已停用（保留便于随时恢复） */
     /* panelBg:'rgba(8,13,24,.55)', noteBg:'rgba(8,13,24,.50)', */
+    /* 质感升级新增：容器外投影 / 受光缘 / 容器内光斑与暗角 */
+    cast:'rgba(2,6,16,.55)', rimHi:'rgba(255,255,255,.16)',
+    vinIn:'rgba(2,6,16,.26)', glowIn:'rgba(120,170,240,.10)',
     fg:'rgba(235,242,252,.94)', fg2:'rgba(178,194,218,.78)'
   },
   light: {
@@ -412,6 +454,9 @@ var THEMES = {
     bSolid:'rgba(47,111,208,', bLiq:'rgba(13,148,136,',
     /* 画布内文字底板：已停用，见深色调色板同处说明 */
     /* panelBg:'rgba(255,255,255,.82)', noteBg:'rgba(255,255,255,.80)', */
+    /* 质感升级新增（浅色：投影/暗角都更弱） */
+    cast:'rgba(40,60,90,.22)', rimHi:'rgba(255,255,255,.70)',
+    vinIn:'rgba(40,60,90,.10)', glowIn:'rgba(255,255,255,.45)',
     fg:'#1c2430', fg2:'#5b6672'
   }
 };
@@ -434,7 +479,7 @@ function setTheme(th){
   PAL = THEMES[th] || THEMES.dark;
   document.body.classList.toggle('light', th === 'light');
   var b = document.getElementById('themeBtn');
-  if (b) b.textContent = (th === 'light') ? '🌙 深色模式' : '☀ 浅色模式';
+  if (b) b.textContent = (th === 'light') ? '☀️ 浅色模式' : '🌙 深色模式';  /* 显示当前模式，与站点顶栏一致 */
   try { localStorage.setItem('hm_theme', th); } catch(err){}
   /* 状态名/圆点的颜色由 JS 写内联样式，切主题后要主动刷一次，
      否则要等用户再拖一下滑块才会变（画布每帧重绘，不受影响）。 */
@@ -962,10 +1007,44 @@ function roundRect(x,y,w,h,r){
   ctx.closePath();
 }
 
+/* 双停靠点径向柔光离屏精灵（缓存）：离子/电子光晕每帧多达 120 个，
+   不能逐个 createRadialGradient —— 预渲染一张按需 drawImage。
+   半径进缓存 key（molR 随窗口变化时自动重建）。 */
+var __spr = {};
+function softSprite2(c0, c1, r){
+  r = Math.max(2, Math.round(r));
+  var k = c0 + '|' + c1 + '|' + r;
+  if (!__spr[k]){
+    var s = document.createElement('canvas');
+    s.width = s.height = r*2;
+    var sc = s.getContext('2d');
+    var g = sc.createRadialGradient(r, r, 0, r, r, r);
+    g.addColorStop(0, c0);
+    g.addColorStop(1, c1);
+    sc.fillStyle = g; sc.fillRect(0, 0, r*2, r*2);
+    __spr[k] = s;
+    if (Object.keys(__spr).length > 24) __spr = {};
+  }
+  return __spr[k];
+}
+
 function drawVessel(bg){
+  /* 容器外投影：先带 shadow 填一次容器底（opaque 渐变，投影自然落在
+     透明画布上 → 叠在 .stage 卡片底色上，无矩形接缝），再正式绘制。 */
   ctx.save();
+  ctx.shadowColor = PAL.cast; ctx.shadowBlur = 16; ctx.shadowOffsetY = 5;
+  var gr0 = ctx.createLinearGradient(0, box.y, 0, box.y+box.h);
+  gr0.addColorStop(0, bg.top); gr0.addColorStop(1, bg.bot);
+  ctx.beginPath();
+  roundRect(box.x, box.y, box.w, box.h, 14);
+  ctx.fillStyle = gr0; ctx.fill();
+  ctx.restore();
+
   var gr = ctx.createLinearGradient(0, box.y, 0, box.y+box.h);
-  gr.addColorStop(0, bg.top); gr.addColorStop(1, bg.bot);
+  /* 中间停靠点：让筒身渐变更通透（top→mid→bot 各占一半亮度差） */
+  gr.addColorStop(0, bg.top);
+  gr.addColorStop(.55, mixHex(bg.top, bg.bot, .62));
+  gr.addColorStop(1, bg.bot);
   ctx.beginPath();
   roundRect(box.x, box.y, box.w, box.h, 14);
   ctx.fillStyle = gr; ctx.fill();
@@ -990,12 +1069,25 @@ function drawVessel(bg){
       ctx.stroke();
     }
   }
+
+  /* 容器内氛围：左上淡光斑 + 边缘内暗角（都在 clip 内，随温度底色走） */
+  ctx.drawImage(softSprite2(PAL.glowIn, 'rgba(0,0,0,0)', 190), box.x+box.w*0.24-190, box.y-120, 380, 380);
+  var ivg = ctx.createRadialGradient(box.x+box.w/2, box.y+box.h/2, Math.min(box.w,box.h)*0.42,
+                                     box.x+box.w/2, box.y+box.h/2, Math.max(box.w,box.h)*0.72);
+  ivg.addColorStop(0, 'rgba(0,0,0,0)');
+  ivg.addColorStop(1, PAL.vinIn);
+  ctx.fillStyle = ivg;
+  ctx.fillRect(box.x, box.y, box.w, box.h);
   ctx.restore();
 
   ctx.save();
   ctx.lineWidth = 4;
   ctx.strokeStyle = PAL.edge;
   ctx.beginPath(); roundRect(box.x, box.y, box.w, box.h, 14); ctx.stroke();
+  /* 受光缘：内侧 1px 高光，让筒壁有"厚度感" */
+  ctx.strokeStyle = PAL.rimHi;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); roundRect(box.x+2, box.y+2, box.w-4, box.h-4, 12); ctx.stroke();
   ctx.restore();
 }
 
@@ -1050,13 +1142,11 @@ function drawParticles(){
     var r = molR;
     if (p.ion){
       /* 正离子失去了最外层电子 → 离子半径略小于原来的分子/原子；
-         等离子体"变大、变亮"的观感应来自发光（光晕），而不是把球体本身画大。 */
+         等离子体"变大、变亮"的观感应来自发光（光晕），而不是把球体本身画大。
+         光晕用预渲染精灵（每帧 120 个离子，逐个 createRadialGradient 会打爆帧预算）。 */
       r = molR*0.85;
-      var gl = ctx.createRadialGradient(p.x,p.y,r*0.5,p.x,p.y,r*2.0);
-      gl.addColorStop(0, PAL.ionGlow0);
-      gl.addColorStop(1, PAL.ionGlow1);
-      ctx.fillStyle = gl;
-      ctx.beginPath(); ctx.arc(p.x,p.y,r*2.0,0,6.283); ctx.fill();
+      var R = molR*2.0;
+      ctx.drawImage(softSprite2(PAL.ionGlow0, PAL.ionGlow1, R), p.x-R, p.y-R, R*2, R*2);
     }
     ctx.beginPath(); ctx.arc(p.x,p.y,r,0,6.283);
     ctx.fillStyle = col; ctx.fill();
@@ -1071,13 +1161,9 @@ function drawParticles(){
 
   for (i=0;i<electrons.length;i++){
     var el = electrons[i];
-    /* 电子尺度最小（远小于离子核心），突出"自由电子很小很轻、运动很快" */
+    /* 电子尺度最小（远小于离子核心），突出"自由电子很小很轻、运动很快"；光晕同用精灵 */
     var eg = molR*0.62, ec = Math.max(1.5, molR*0.20);
-    var g2 = ctx.createRadialGradient(el.x,el.y,0,el.x,el.y,eg);
-    g2.addColorStop(0, PAL.elGlow0);
-    g2.addColorStop(1, PAL.elGlow1);
-    ctx.fillStyle = g2;
-    ctx.beginPath(); ctx.arc(el.x,el.y,eg,0,6.283); ctx.fill();
+    ctx.drawImage(softSprite2(PAL.elGlow0, PAL.elGlow1, eg), el.x-eg, el.y-eg, eg*2, eg*2);
     ctx.beginPath(); ctx.arc(el.x,el.y,ec,0,6.283);
     ctx.fillStyle = PAL.elCore; ctx.fill();
   }
@@ -1326,6 +1412,55 @@ document.getElementById('optBond').onchange = function(){ optBond = this.checked
 document.getElementById('themeBtn').addEventListener('click', function(){
   setTheme(isLight() ? 'dark' : 'light');
 });
+
+/* ===== 页头「全屏 / 退出全屏」 =====
+   对整页 documentElement 生效。全屏会改变 innerHeight 与画布可用宽度，
+   必须调用本页自己的尺寸函数重算；过渡动画期间 innerHeight 可能晚一帧更新，
+   故 rAF 与 260ms 各量一次。 */
+var RS = resize;
+var fsBtn = document.getElementById('fsBtn');
+
+function fsIsOn(){
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+function fsSync(){
+  if (!fsBtn) return;
+  var on = fsIsOn(), lb = fsBtn.querySelector('.lbl');
+  if (lb) lb.textContent = on ? '退出全屏' : '全屏';
+  fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  fsBtn.title = on ? '退出全屏（Esc 也可退出）' : '全屏显示';
+}
+function fsReflow(){
+  requestAnimationFrame(function(){ RS(); setTimeout(RS, 260); });
+}
+function fsToggle(){
+  try{
+    if (!fsIsOn()){
+      var el = document.documentElement;
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (!req) return;
+      var p = req.call(el);
+      if (p && p.catch) p.catch(function(){});
+    } else {
+      var ex = document.exitFullscreen || document.webkitExitFullscreen;
+      if (!ex) return;
+      var q = ex.call(document);
+      if (q && q.catch) q.catch(function(){});
+    }
+  }catch(e){}
+}
+if (fsBtn){
+  var fsOK = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled) &&
+             !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+  if (!fsOK){
+    fsBtn.hidden = true;      /* 宿主未给 allow="fullscreen" 时优雅降级，不留死按钮 */
+  } else {
+    fsBtn.addEventListener('click', fsToggle);
+    document.addEventListener('fullscreenchange', function(){ fsSync(); fsReflow(); });
+    document.addEventListener('webkitfullscreenchange', function(){ fsSync(); fsReflow(); });
+    fsSync();
+  }
+}
 window.addEventListener('resize', function(){ resize(); });
 
 /* ============ 主循环 ============ */

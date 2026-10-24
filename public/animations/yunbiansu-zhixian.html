@@ -28,10 +28,11 @@ body{margin:0;padding:14px 18px 18px;
 .top{display:flex;justify-content:space-between;align-items:center;gap:16px;max-width:1800px;margin:0 auto 12px}
 .titles h1{font-size:26px;margin:0;font-weight:600;letter-spacing:1px}
 .titles .sub{margin:2px 0 0;font-size:16px;color:var(--text2)}
-.topArea{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(360px,0.65fr);gap:14px;
+#themeBtn,#fsBtn{white-space:nowrap}
+/* 右列 = max(390px, 28.15%)：390 由读数卡反推（17px 最坏内容 360 + 卡片 22 + 余量），
+   拐点在视口 ≈1436，1101–1436 恒为 390，更宽屏才按比例长 */
+.topArea{display:grid;grid-template-columns:minmax(0,1fr) minmax(390px,0.392fr);gap:14px;
          max-width:1800px;margin:0 auto;align-items:stretch}
-.bottomRow{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;
-           max-width:1800px;margin:14px auto 0;align-items:stretch}
 .colL,.colR{display:flex;flex-direction:column;gap:12px;min-width:0}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 canvas{display:block;width:100%;border-radius:8px}
@@ -53,6 +54,10 @@ canvas{display:block;width:100%;border-radius:8px}
 .badge{font-size:16px;padding:3px 10px;border-radius:8px;background:var(--badgebg);color:var(--badgefg);font-weight:600}
 .controls .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
 .controls .row:first-child{margin-top:0}
+.presetGroup{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.playGroup{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.presetGroup .presetLabel{font-size:16px;color:var(--text2);white-space:nowrap}
+.presetGroup .btn{padding:5px 9px}
 .carBox{flex:1;min-width:280px;border:1px solid var(--line);border-radius:10px;padding:4px 10px 6px}
 .carBox legend{font-size:15px;font-weight:600;padding:0 6px}
 .pline{display:flex;gap:8px;align-items:center;font-size:17px;margin:3px 0}
@@ -63,32 +68,20 @@ canvas{display:block;width:100%;border-radius:8px}
 .chkline{display:flex;gap:6px;align-items:center;font-size:16px;color:var(--text);margin-top:2px}
 select{font-size:16px;padding:4px 6px;border:1px solid var(--btnline);border-radius:8px;background:var(--inputbg);color:var(--text)}
 input[type=checkbox]{accent-color:var(--accent)}
-.graphCard{display:flex;flex-direction:column;flex:1;min-height:150px}
+.graphCard{display:flex;flex-direction:column;flex:1;min-height:190px}
 .gTitle{font-size:16px;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
 .gTitle .gNote{font-size:15px;font-weight:400;color:var(--text2)}
 .graphCard canvas{flex:1;cursor:ew-resize}
-.readCard .relNote{font-size:15px;color:var(--badgefg);font-weight:600;margin-bottom:4px}
-.readGrid{display:grid;grid-template-columns:14px max-content repeat(3, auto) 1fr;
-          gap:2px 16px;align-items:center;font-size:19px}
-.rRow{display:grid;grid-column:1 / -1;grid-template-columns:subgrid;gap:2px 16px;
-      align-items:center;padding:3px 0;font-size:19px}
-.rRow .dot{width:12px;height:12px;border-radius:50%}
-.rRow b{font-variant-numeric:tabular-nums}
-.rRow span.v{color:var(--text);white-space:nowrap}
-.tipsCard .gTitle{margin-bottom:4px}
-.tips{font-size:17px;color:var(--text2);line-height:1.85;margin:0;padding:0;list-style-position:inside}
-.tips li{margin:3px 0}
 .katex{font-size:1.08em}
 .foot{max-width:1800px;margin:14px auto 0;text-align:center;font-size:16px;color:var(--text2);
       border-top:1px solid var(--line);padding-top:10px;font-weight:400}
 @media (max-width:1100px){
-  .topArea,.bottomRow{grid-template-columns:1fr}
+  .topArea{grid-template-columns:1fr}
 }
 /* 矮视口：只压缩间距，不隐藏任何内容（页面允许滚动） */
 @media (max-height:920px){
   .top{margin-bottom:8px}
   .card{padding:8px 10px}
-  .bottomRow{margin-top:10px}
   .foot{margin-top:10px;padding-top:8px}
 }
 
@@ -98,7 +91,6 @@ input[type=checkbox]{accent-color:var(--accent)}
   .top{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:10px}
   .titles h1{font-size:21px;letter-spacing:.5px}
   .titles .sub{font-size:14.5px}
-  .readGrid,.rRow{font-size:16px;gap:2px 10px}
   .bar{font-size:14.5px}
   .tLabel{min-width:0;font-size:15px}
   .btn{font-size:15px;padding:7px 12px}
@@ -119,15 +111,27 @@ input[type=checkbox]{accent-color:var(--accent)}
   body{padding:12px 12px 14px}
   .card{padding:9px 11px}
   .pline label,.pline input[type=number],.pline .unit{font-size:16px}
-  .readGrid,.rRow{font-size:15px}
   .foot{font-size:14px}
 }
-/* 超窄屏（360px 级安卓机）：读数表 6 列挤不下，收紧列距并允许数值换行 */
+
+/* ===== 页头右侧按钮组：主题 + 全屏 =====
+   flex:0 0 auto + nowrap：整组不缩不拆行；stretch 让两按钮等高；
+   [hidden] 必须显式覆盖：作者样式的 display 会盖掉 UA 的 [hidden]{display:none} */
+.hdr-tools{display:flex;align-items:stretch;gap:8px;flex:0 0 auto;flex-wrap:nowrap;}
+.hdr-tools .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;}
+.hdr-tools .btn svg{width:16px;height:16px;flex:none;}
+.hdr-tools .btn[hidden]{display:none;}
+.hdr-tools .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.hdr-tools #fsBtn .ico-in{display:none;}
+.hdr-tools #fsBtn[aria-pressed="true"] .ico-out{display:none;}
+.hdr-tools #fsBtn[aria-pressed="true"] .ico-in{display:block;}
+.hdr-tools #fsBtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);}
 @media (max-width:420px){
-  .readGrid{grid-template-columns:12px max-content repeat(3, minmax(0, auto)) 1fr;gap:2px 8px}
-  .rRow{font-size:14px;gap:2px 8px}
-  .rRow span.v{white-space:normal}
-  .tip, .tips{font-size:15px}
+  .hdr-tools{gap:6px;}
+  .hdr-tools .btn{padding-left:11px;padding-right:11px;}
+}
+@media (max-width:360px){
+  .hdr-tools #fsBtn .lbl{display:none;}
 }
 </style>
 </head>
@@ -138,7 +142,22 @@ input[type=checkbox]{accent-color:var(--accent)}
     <h1>匀变速直线运动 · 追击相遇</h1>
     <p class="sub">双小车 · 三参考系切换 · $x$–$t$ / $v$–$t$ 图像同步 · 课堂图像预测</p>
   </div>
-  <button class="btn" id="themeBtn">☀ 浅色模式</button>
+  <div class="hdr-tools">
+    <button class="btn" id="themeBtn" type="button" title="切换深浅主题">🌙 深色模式</button>
+    <button class="btn" id="fsBtn" type="button" aria-pressed="false" title="全屏显示">
+      <svg class="ico-out" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M9 4H5a1 1 0 0 0-1 1v4"/><path d="M15 4h4a1 1 0 0 1 1 1v4"/>
+        <path d="M20 15v4a1 1 0 0 1-1 1h-4"/><path d="M4 15v4a1 1 0 0 0 1 1h4"/>
+      </svg>
+      <svg class="ico-in" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M20 9V5a1 1 0 0 0-1-1h-4"/>
+        <path d="M15 20h4a1 1 0 0 0 1-1v-4"/><path d="M9 20H5a1 1 0 0 1-1-1v-4"/>
+      </svg>
+      <span class="lbl">全屏</span>
+    </button>
+  </div>
 </header>
 
 <div class="topArea">
@@ -161,18 +180,21 @@ input[type=checkbox]{accent-color:var(--accent)}
 
     <div class="card controls" id="ctrl">
       <div class="row">
-        <span style="font-size:16px;color:var(--text2)">追击相遇预设：</span>
-        <button class="btn" id="q1">情境1 · 加速追匀速</button>
-        <button class="btn" id="q2">情境2 · 减速未追上</button>
-        <button class="btn" id="q3">情境3 · 二次相遇</button>
-        <span style="flex:1"></span>
-        <button class="btn play" id="playBtn">▶ 播放</button>
-        <button class="btn" id="resetBtn">↺ 重置</button>
-        <select id="speedSel" title="播放速度">
-          <option value="0.5">0.5× 慢放</option>
-          <option value="1" selected>1× 正常</option>
-          <option value="2">2× 快放</option>
-        </select>
+        <div class="presetGroup">
+          <span class="presetLabel">追击相遇预设：</span>
+          <button class="btn" id="q1">情境1 · 加速追匀速</button>
+          <button class="btn" id="q2">情境2 · 减速未追上</button>
+          <button class="btn" id="q3">情境3 · 二次相遇</button>
+        </div>
+        <div class="playGroup">
+          <button class="btn play" id="playBtn">▶ 播放</button>
+          <button class="btn" id="resetBtn">↺ 重置</button>
+          <select id="speedSel" title="播放速度">
+            <option value="0.5">0.5× 慢放</option>
+            <option value="1" selected>1× 正常</option>
+            <option value="2">2× 快放</option>
+          </select>
+        </div>
       </div>
 
       <div class="row" style="align-items:stretch">
@@ -195,58 +217,33 @@ input[type=checkbox]{accent-color:var(--accent)}
 
       <div class="row">
         <span style="font-size:17px">总时间 $t$</span>
-        <input type="number" id="tmax" step="0.5" min="1" max="60" value="20" style="width:74px;font-size:17px;padding:3px 5px;border:1px solid var(--btnline);border-radius:6px;background:var(--inputbg);color:var(--text)">
-        <input type="range" id="tmaxs" min="1" max="60" step="0.5" value="20" style="width:120px">
+        <input type="number" id="tmax" step="0.5" min="1" max="60" value="16" style="width:74px;font-size:17px;padding:3px 5px;border:1px solid var(--btnline);border-radius:6px;background:var(--inputbg);color:var(--text)">
+        <input type="range" id="tmaxs" min="1" max="60" step="0.5" value="16" style="width:120px">
         <span style="font-size:17px">图像对象</span>
         <select id="objSel">
           <option value="A">A 车</option>
           <option value="B">B 车</option>
-          <option value="both">A + B 对比</option>
+          <option value="both" selected>A + B 对比</option>
           <option value="mark">路标（地面固定物）</option>
         </select>
         <span style="flex:1"></span>
-        <button class="btn" id="predBtn">✎ 预测模式</button>
-        <button class="btn" id="clearBtn" disabled>清除画笔</button>
-        <button class="btn" id="revealBtn" disabled>揭示答案</button>
+        <button class="btn" id="predBtn">✎ 手动画图</button>
+        <button class="btn" id="clearBtn" title="清空两幅图上的手绘笔迹（任何时候都可用）">清除画笔</button>
+        <button class="btn" id="revealBtn">显示图像</button>
       </div>
     </div>
   </div>
 
-  <!-- ================= 右上：两幅图像 ================= -->
+  <!-- ================= 右上：两幅图像（v–t 在上、x–t 在下，平分右列高度） ================= -->
   <div class="colR">
-    <div class="card graphCard">
-      <div class="gTitle"><span>$x$–$t$ 图（位置—时间）</span><span class="gNote" id="xtNote">在图上左右拖动可同步改变时刻</span></div>
-      <canvas id="xt"></canvas>
-    </div>
     <div class="card graphCard">
       <div class="gTitle"><span>$v$–$t$ 图（速度—时间）</span><span class="gNote" id="vtNote">拖动竖直虚线，小车与图像同步</span></div>
       <canvas id="vt"></canvas>
     </div>
-  </div>
-</div>
-
-<!-- ================= 底部整行：读数 + 教学提示 ================= -->
-<div class="bottomRow" id="brow">
-  <div class="card readCard">
-    <div class="relNote" id="relNote">读数相对参考系：地面</div>
-    <div class="readGrid">
-    <div class="rRow" id="rowA"><span class="dot" id="dotA"></span><b style="color:var(--accent)">A 车</b>
-      <span class="v">$x$ = <b id="rAx">0.0</b> $\text{m}$</span>
-      <span class="v">$v$ = <b id="rAv">0.0</b> $\text{m/s}$</span>
-      <span class="v">$a$ = <b id="rAa">2.0</b> $\text{m/s}^2$</span></div>
-    <div class="rRow" id="rowB"><span class="dot" id="dotB"></span><b style="color:#2FBF95">B 车</b>
-      <span class="v">$x$ = <b id="rBx">80.0</b> $\text{m}$</span>
-      <span class="v">$v$ = <b id="rBv">6.0</b> $\text{m/s}$</span>
-      <span class="v">$a$ = <b id="rBa">0.0</b> $\text{m/s}^2$</span></div>
+    <div class="card graphCard">
+      <div class="gTitle"><span>$x$–$t$ 图（位置—时间）</span><span class="gNote" id="xtNote">在图上左右拖动可同步改变时刻</span></div>
+      <canvas id="xt"></canvas>
     </div>
-  </div>
-  <div class="card tipsCard">
-    <div class="gTitle">教学提示</div>
-    <ul class="tips">
-      <li>切换参考系后，图像与读数自动换成相对量。</li>
-      <li>在图像上左右拖动竖直虚线，小车位置与两幅图像同步变化。</li>
-      <li>预测模式下用鼠标在图上画出预测图线，再点「揭示答案」对比；快捷键：空格 = 播放/暂停。</li>
-    </ul>
   </div>
 </div>
 
@@ -301,7 +298,13 @@ var THEMES = {
     A:'#4D8DFF', B:'#2FBF95', mark:'#7E90A8',
     ink:'#9B8CFF', devOk:'#2FBF95', devBad:'#FF7070', hint:'rgba(155,140,255,0.10)',
     tline:'rgba(77,141,255,0.40)',
-    edgeBg:'rgba(8,14,26,0.80)', edgeText:'#E8EEF8'
+    edgeBg:'rgba(8,14,26,0.80)', edgeText:'#E8EEF8',
+    /* 质感升级新增：sunGlow 太阳柔光（替代硬边 halo 圈）、castY 投影、
+       vignette 暗角、gPanel0/1/Edge 图表面板（dark） */
+    sunGlow:'rgba(232,217,160,.30)', castY:'rgba(2,8,18,.40)',
+    vignette:'rgba(2,8,18,.18)',
+    gPanel0:'#121C30', gPanel1:'#0C1424', gPanelEdge:'rgba(150,170,200,.28)',
+    hi:'#ffffff', lo:'#000000'
   },
   light: {
     sky:'#DCEDFB', sun:'#FFE9A8', sunHalo:'#FFF4CF',
@@ -318,15 +321,21 @@ var THEMES = {
     A:'#185FA5', B:'#0F6E56', mark:'#8A94A0',
     ink:'#534AB7', devOk:'#0F6E56', devBad:'#E24B4A', hint:'rgba(83,74,183,0.10)',
     tline:'rgba(24,95,165,0.35)',
-    edgeBg:'rgba(255,255,255,0.88)', edgeText:'#202730'
+    edgeBg:'rgba(255,255,255,0.88)', edgeText:'#202730',
+    /* 质感升级新增（light：投影/暗角更弱，面板更白） */
+    sunGlow:'rgba(255,233,150,.55)', castY:'rgba(40,60,90,.25)',
+    vignette:'rgba(40,60,90,.10)',
+    gPanel0:'#FFFFFF', gPanel1:'#F2F6FB', gPanelEdge:'rgba(70,90,120,.30)',
+    hi:'#ffffff', lo:'#5b6b80'
   }
 };
 var state = {
   theme:'dark',
-  t:0, tMax:20, playing:false, speed:1,
+  t:0, tMax:16, playing:false, speed:1,
   frame:'ground',            /* ground | A | B */
   strobe:false, showB:true,
   graphObj:'both',           /* A | B | both | mark */
+  preset:0,                  /* 当前情境索引：0 追及重合即停、1 A 车停住即停 */
   objBeforePredict:null,     /* 进入预测模式前的图像对象，退出时恢复 */
   predict:false, revealed:false, revealStart:0, revealT:0,
   ghosts:[],
@@ -342,14 +351,61 @@ function setTheme(th){
   state.theme = th;
   PAL = THEMES[th];
   document.body.classList.toggle('light', th === 'light');
-  $('themeBtn').textContent = th === 'dark' ? '☀ 浅色模式' : '🌙 深色模式';
-  $('dotA').style.background = PAL.A;
-  $('dotB').style.background = PAL.B;
+  $('themeBtn').textContent = th === 'light' ? '☀️ 浅色模式' : '🌙 深色模式';  /* 显示当前模式，与站点顶栏一致 */
   try { localStorage.setItem('hm_theme', th); } catch(err){}
 }
 $('themeBtn').addEventListener('click', function(){
   setTheme(state.theme === 'dark' ? 'light' : 'dark');
 });
+
+/* ===== 页头「全屏 / 退出全屏」 =====
+   对整页 documentElement 生效。全屏会改变 innerHeight 与画布可用宽度，
+   必须调用本页自己的尺寸函数重算；过渡动画期间 innerHeight 可能晚一帧更新，
+   故 rAF 与 260ms 各量一次。 */
+var RS = resize;
+var fsBtn = document.getElementById('fsBtn');
+
+function fsIsOn(){
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+function fsSync(){
+  if (!fsBtn) return;
+  var on = fsIsOn(), lb = fsBtn.querySelector('.lbl');
+  if (lb) lb.textContent = on ? '退出全屏' : '全屏';
+  fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  fsBtn.title = on ? '退出全屏（Esc 也可退出）' : '全屏显示';
+}
+function fsReflow(){
+  requestAnimationFrame(function(){ RS(); setTimeout(RS, 260); });
+}
+function fsToggle(){
+  try{
+    if (!fsIsOn()){
+      var el = document.documentElement;
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (!req) return;
+      var pr = req.call(el);
+      if (pr && pr.catch) pr.catch(function(){});
+    } else {
+      var ex = document.exitFullscreen || document.webkitExitFullscreen;
+      if (!ex) return;
+      var q = ex.call(document);
+      if (q && q.catch) q.catch(function(){});
+    }
+  }catch(e){}
+}
+if (fsBtn){
+  var fsOK = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled) &&
+             !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+  if (!fsOK){
+    fsBtn.hidden = true;
+  } else {
+    fsBtn.addEventListener('click', fsToggle);
+    document.addEventListener('fullscreenchange', function(){ fsSync(); fsReflow(); });
+    document.addEventListener('webkitfullscreenchange', function(){ fsSync(); fsReflow(); });
+    fsSync();
+  }
+}
 (function initTheme(){
   var saved = null;
   try { saved = localStorage.getItem('hm_theme'); } catch(err){}
@@ -401,7 +457,9 @@ function seriesY(s, kind, t){
 }
 
 /* ---------------- 画布尺寸 ---------------- */
-var dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+/* DPR 封顶 2：三张画布同时全量重绘，>2 的屏（如手机 3x）只会白烧帧预算，
+   视觉上 2x 已足够锐利。加载时求值一次，不随缩放变动。 */
+var dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
 var cvS = $('scene'), cvX = $('xt'), cvV = $('vt');
 var ctxS = cvS.getContext('2d');
 var ctxX = cvX.getContext('2d');
@@ -425,7 +483,6 @@ function resize(){
   var vh = (typeof window !== 'undefined' && window.innerHeight > 300) ? window.innerHeight : 940;
   var cssW = cvS.clientWidth || 900;
   var used = elH($('hdr'), 88)   + 12      /* 页头 + 下边距 */
-           + elH($('brow'), 200) + 14      /* 底部整行 + 上边距 */
            + elH($('ftr'), 46)   + 14      /* 页脚 + 上边距 */
            + 32                            /* body 上下内边距 */
            + elH($('sceneBar'), 40) + 8    /* 场景工具条 + 上边距 */
@@ -450,10 +507,14 @@ function resize(){
   snapScale();
 }
 if (typeof ResizeObserver !== 'undefined'){
-  var roLastW = cvS.clientWidth;
+  var roLastW = cvS.clientWidth, roLastH = cvS.clientHeight;
   new ResizeObserver(function(){
-    var w = cvS.clientWidth;
-    if (Math.abs(w - roLastW) > 1){ roLastW = w; resize(); }
+    var w = cvS.clientWidth, h = cvS.clientHeight;
+    var wCh = Math.abs(w - roLastW) > 1, hCh = Math.abs(h - roLastH) > 1;
+    if (!wCh && !hCh) return;
+    roLastW = w; roLastH = h;                 /* 先记账再动作，避免回调里再触发自己 */
+    if (wCh) resize();                        /* 宽度变：重算布局与比例尺 */
+    else sizeCanvas(cvS);                     /* 仅被拉高：只同步 backing store，不改布局 */
   }).observe(cvS);
 }
 if (typeof window !== 'undefined' && window.addEventListener){
@@ -461,13 +522,19 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 /* ---------------- 相机与比例尺 ----------------
-   地面系：镜头锁死原点（原点在动画区左侧 1/5 处），地面静止；
+   地面系：镜头锁死原点（原点在动画区左侧 1/5 处，再左移 CAM0 米），地面静止；
    A/B 车系：镜头锁死对应车。
    比例尺只在加载、切换预设、按「适配视图」时整定；调节 v₀/a/x₀ 不改缩放；
    动画区支持滚轮缩放。 */
 var cam = 0, ppm = 6, fitPpm = 6, CAM_LOCKED = false;
+/* 情境1 的初始视图放大 1.5 倍，并把这个 150% 当作新的基准（缩放标签仍显示 100%）。
+   每次换情境由 applyPreset 重设，所以「适配视图」也会回到这个基准。 */
+var zoomBoost = 1.5;
 /* 画面原点所在的横向比例（与 drawSceneRoad 的 orgX 共用，避免两处改不同步） */
 var ORGX_RATIO = 0.2;
+/* 地面系静置时，把世界 x = CAM0 对准画面 orgX —— 相当于坐标原点再往左挪 25 m，
+   给右侧留出更多跑道。窄屏会按「车身仍完整可见」自动收窄（见 restCam）。 */
+var CAM0 = 25;
 /* A 车自动跟随：车中心在画面内的安全区间（距左 / 右边缘保留的像素）。
    左侧留白取 40（车半宽约 32，40 已能保证车身完整），且必须小于原点位置 W*0.2，
    否则车停在原点时就会误触发跟随，画面会自己动一下。 */
@@ -490,7 +557,7 @@ function snapScale(){
   var rightRoom = W * 0.8 - 80, leftRoom = W * 0.2 - 60;
   var k1 = rightRoom / (posReach + 25);
   var k2 = negReach > 0 ? leftRoom / (negReach + 25) : 99;
-  ppm = clamp(Math.min(k1, k2), 1.8, 6);
+  ppm = clamp(clamp(Math.min(k1, k2), 1.8, 6) * zoomBoost, 0.5, 24);
   fitPpm = ppm;
   resetCam();                          /* 「适配视图」= 镜头回到默认位置 */
 }
@@ -503,11 +570,17 @@ function zoomBy(f){
    当 A 车屏幕位置到达「距右 1/4」（0.75W）时启动追踪，此后把 A 车锚定在画面正中（0.5W）；
    明显退回左侧（静止位置 < 0.55W）才解除锁定，避免临界抖动。
    未锁定且车逼近左边缘时，相机左移保住车身。A / B 参考系本就锁定对应车，无需跟随。 */
+/* 地面系静置时的相机位置（世界 m）：通常就是 CAM0，
+   但不超过「原点仍在画面内、车身还放得下」的上限，窄屏自动收窄。 */
+function restCam(W){
+  var maxShift = (W * ORGX_RATIO - FOLLOW_PAD_L) / (ppm || 1);
+  return Math.max(0, Math.min(CAM0, maxShift));
+}
 function followTarget(W){
   var orgX = W * ORGX_RATIO;
   var ax = kin(state.cars.A, state.t).x;
   var sxA = orgX + (ax - cam) * ppm;             /* A 当前屏幕位置 */
-  var restSxA = orgX + ax * ppm;                 /* 相机静止时 A 的屏幕位置（判定是否到右 1/4 用） */
+  var restSxA = orgX + (ax - restCam(W)) * ppm;   /* 相机静止时 A 的屏幕位置（判定是否到右 1/4 用） */
   /* 到达动画区右侧 1/4（= 0.75W）时锁定；明显退回左侧（< 0.55W）才解除，避免临界抖动 */
   if (restSxA > W * 0.75) CAM_LOCKED = true;
   else if (restSxA < W * 0.55) CAM_LOCKED = false;
@@ -523,7 +596,7 @@ function resetCam(){
   if (state.frame === 'A') cam = kin(state.cars.A, state.t).x;
   else if (state.frame === 'B') cam = kin(state.cars.B, state.t).x;
   else {
-    cam = 0;                                             /* 先回到原点 */
+    cam = restCam(W);                                    /* 静置：原点再左移 CAM0 米 */
     cam = followTarget(W);                               /* 若此刻车已在画面外，直接跟到位 */
   }
 }
@@ -538,6 +611,43 @@ function rrect(c,x,y,w,h,r){
   c.lineTo(x+w,y+h-r); c.arcTo(x+w,y+h,x+w-r,y+h,r);
   c.lineTo(x+r,y+h); c.arcTo(x,y+h,x,y+h-r,r);
   c.lineTo(x,y+r); c.arcTo(x,y,x+r,y,r); c.closePath();
+}
+/* ================== 质感工具（渐变 / 柔光精灵） ==================
+   本文件有三个 ctx（场景 ctxS + 两张图 ctxX/ctxV），Gradient 虽可跨 ctx 复用，
+   缓存 key 仍带上 ctx 编号以防万一；颜色一律来自 PAL。 */
+function mixHex(a, b, t){
+  if (a[0] !== '#' || b[0] !== '#') return a;
+  var pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  function ch(s, e){ return Math.round(s + (e - s) * t); }
+  return 'rgb(' + ch((pa>>16)&255, (pb>>16)&255) + ',' + ch((pa>>8)&255, (pb>>8)&255) + ',' + ch(pa&255, pb&255) + ')';
+}
+var __vg = {}, __gid = 0;
+function vGrad(c, y0, y1, c0, c1){
+  if (!c.__gid) c.__gid = ++__gid;
+  var k = c.__gid + '|' + y0 + '|' + y1 + '|' + c0 + '|' + c1;
+  if (!__vg[k]){
+    var g = c.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, c0); g.addColorStop(1, c1);
+    __vg[k] = g;
+    if (Object.keys(__vg).length > 120) __vg = {};
+  }
+  return __vg[k];
+}
+/* 径向柔光离屏精灵（缓存；太阳光晕 / 车辆投影用） */
+var __spr = {};
+function softSprite(col, r){
+  var k = col + '|' + r;
+  if (!__spr[k]){
+    var s = document.createElement('canvas');
+    s.width = s.height = r*2;
+    var sc = s.getContext('2d');
+    var g = sc.createRadialGradient(r, r, 0, r, r, r);
+    g.addColorStop(0, col);
+    g.addColorStop(1, 'rgba(0,0,0,0)');   /* 全透明停靠点：只借 alpha，不引入色相 */
+    sc.fillStyle = g; sc.fillRect(0, 0, r*2, r*2);
+    __spr[k] = s;
+  }
+  return __spr[k];
 }
 /* 准 TeX 分段文字（使用 KaTeX 数学字体，与 HTML 区公式字形保持一致） */
 function segFont(s){
@@ -574,7 +684,10 @@ function drawArrow(c, x1,y1, x2,y2, color, w){
 }
 function drawCar(c, sx, sy, col, label, alpha){
   c.save(); c.globalAlpha = alpha === undefined ? 1 : alpha;
-  c.fillStyle = col;
+  /* 车身材质：竖向渐变（上亮下暗）。sy 只有两个车道值，vGrad 缓存几乎全命中 */
+  var body = vGrad(c, Math.round(sy-27), Math.round(sy-2),
+                   mixHex(col, PAL.hi, .30), mixHex(col, PAL.lo, .24));
+  c.fillStyle = body;
   rrect(c, sx-24, sy-16, 48, 14, 5); c.fill();
   c.beginPath();
   c.moveTo(sx-13, sy-16); c.lineTo(sx-6, sy-27); c.lineTo(sx+10, sy-27); c.lineTo(sx+16, sy-16);
@@ -639,6 +752,8 @@ function drawEdgeBadge(c, W, y, sxp, name, dist, color){
 
 function drawScene(dt){
   var W = cvS.clientWidth || 900, H = cvS.clientHeight || 420;
+  /* 左列被拉高后 backing store 可能滞后：按实际尺寸重设再画，防拉伸/裁切 */
+  if (cvS.width !== Math.round(W * dpr) || cvS.height !== Math.round(H * dpr)) sizeCanvas(cvS);
   var c = ctxS;
   c.setTransform(dpr,0,0,dpr,0,0);
   c.clearRect(0,0,W,H);
@@ -656,19 +771,32 @@ function drawScene(dt){
     cam = dt > 0 ? cam + (want - cam) * (1 - Math.exp(-dt / FOLLOW_TAU)) : want;
   }
 
-  c.fillStyle = PAL.sky; c.fillRect(0, 0, W, H);
+  /* 天空：竖向渐变（顶部深、近地平线略亮），缓存随高度/主题失效 */
+  c.fillStyle = vGrad(c, 0, Math.round(H), PAL.sky, mixHex(PAL.sky, PAL.hi, .16));
+  c.fillRect(0, 0, W, H);
   drawClouds(c, W, dt);
-  c.fillStyle = PAL.sunHalo;
-  c.beginPath(); c.arc(W-70, 66, 34, 0, TAU); c.fill();
+  /* 太阳：位置/尺寸一个像素不动（已验收）；硬边外圈换成径向柔光 */
+  c.drawImage(softSprite(PAL.sunGlow, 72), W-70-72, 66-72, 144, 144);
   c.fillStyle = PAL.sun;
   c.beginPath(); c.arc(W-70, 66, 26, 0, TAU); c.fill();
 
   drawSceneRoad(c, W, H, kA, kB, fk, vis);
+
+  /* 暗角：压住四角，让画面收拢（深色 α≤.18 / 浅色 α≤.10，走调色板） */
+  var vk = W + '|' + H + '|' + state.theme;
+  if (!drawScene.__v || drawScene.__v.k !== vk){
+    var vg = c.createRadialGradient(W/2, H*0.46, Math.min(W,H)*0.42, W/2, H*0.5, Math.max(W,H)*0.74);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, PAL.vignette);
+    drawScene.__v = { k:vk, g:vg };
+  }
+  c.fillStyle = drawScene.__v.g;
+  c.fillRect(0, 0, W, H);
 }
 
 function drawSceneRoad(c, W, H, kA, kB, fk, vis){
   var orgX = W * ORGX_RATIO;           /* 坐标原点在动画区左侧 1/5 处 */
-  var roadTop = H * 0.60, roadBot = H * 0.78;
+  var roadTop = H * 0.57, roadBot = H * 0.84;   /* 路面占 27%H（原 18%）、路下草丛 16%H（原 22%） */
   function sx(wx){ return orgX + (wx - cam) * ppm; }
 
   c.fillStyle = PAL.hill;
@@ -682,7 +810,10 @@ function drawSceneRoad(c, W, H, kA, kB, fk, vis){
   var i1 = Math.ceil((cam + (W-orgX)/ppm) / 25) + 1;
   for (var i = i0; i <= i1; i++){ drawTree(c, sx(treeX(i)), roadTop, treeKind(i), W); }
 
-  c.fillStyle = PAL.road; c.fillRect(0, roadTop, W, roadBot - roadTop);
+  /* 路面：竖向渐变（上亮下暗，微弱立体感）；roadEdge 两条边线保留 */
+  c.fillStyle = vGrad(c, Math.round(roadTop), Math.round(roadBot),
+                      mixHex(PAL.road, PAL.hi, .10), mixHex(PAL.road, PAL.lo, .12));
+  c.fillRect(0, roadTop, W, roadBot - roadTop);
   c.fillStyle = PAL.roadEdge; c.fillRect(0, roadTop, W, 3); c.fillRect(0, roadBot-3, W, 3);
   /* 中心虚线：相位锚定世界原点 —— 以车为参考系时随路面一起后退 */
   var dashOn = 26, dashPeriod = 46;
@@ -731,7 +862,13 @@ function drawSceneRoad(c, W, H, kA, kB, fk, vis){
     c.fillText(mLabel, mpx, roadBot + 5);
   }
 
-  var carY = roadTop + (roadBot - roadTop) * 0.66;
+  /* 两车分置中心虚线两侧（车身竖向范围 sy-27…sy+5，车轮底 = sy+5，中部 = sy-11）：
+     · A 车：车轮底正好踩在虚线上 → sy = midY - 5
+     · B 车：车身中部正好落在虚线上 → sy = midY + 11 */
+  var midY = (roadTop + roadBot) / 2;
+  var carYA = midY - 5;
+  var carYB = midY + 11;
+  function laneY(k){ return k === 'A' ? carYA : carYB; }
 
   /* 频闪虚影 */
   if (state.strobe){
@@ -742,7 +879,7 @@ function drawSceneRoad(c, W, H, kA, kB, fk, vis){
         if (state.frame !== 'ground' && key === state.frame) continue;
         var gpx = sx(gh[key]);
         if (gpx > -50 && gpx < W + 50){
-          drawCar(c, gpx, carY, key === 'A' ? PAL.A : PAL.B, '', 0.18);
+          drawCar(c, gpx, laneY(key), key === 'A' ? PAL.A : PAL.B, '', 0.18);
         }
       }
     }
@@ -757,25 +894,28 @@ function drawSceneRoad(c, W, H, kA, kB, fk, vis){
     var px = sx(carWX[key2]);
     if (px < -100 || px > W + 100) continue;   /* 完全出画的车不再绘制（边缘有指示牌） */
     var col = key2 === 'A' ? PAL.A : PAL.B;
+    var carY = laneY(key2);
+    /* 车底接触投影：贴路面的扁柔光椭圆（真车才有；频闪虚影不加） */
+    c.save();
+    c.translate(px, carY + 6);
+    c.scale(56/128, 0.14);
+    c.drawImage(softSprite(PAL.castY, 64), -64, -64);
+    c.restore();
     drawCar(c, px, carY, col, key2, 1);
-    var vLen = clamp(Math.abs(kk.v) * 5, 0, 110);
+    /* 只写数值、不画矢量箭头。两车靠得很近，四行标注统一排到两车上方：
+       A（靠上）：a 行 carY-126、v 行 carY-98；B（靠下）：a 行 carY-86、v 行 carY-58。
+       行距 28px，自下而上依次 B 的 v、B 的 a、A 的 v、A 的 a，两车重合时也不叠字。 */
     c.textBaseline = 'bottom';
-    if (Math.abs(kk.v) < 0.05){
-      drawSeg(c, px, carY - 40, [{t:'v', i:1, s:20, c:PAL.vText}, {t:' = 0', s:20, c:PAL.vText}], 'center');
-    } else {
-      drawArrow(c, px, carY-36, px + Math.sign(kk.v)*vLen, carY-36, PAL.vArrow, 5);
-      drawSeg(c, px + Math.sign(kk.v)*vLen*0.5, carY - 56,
-        [{t:'v', i:1, s:20, c:PAL.vText}, {t:' = ' + fmt(kk.v) + ' m/s', s:20, c:PAL.vText}], 'center');
-    }
-    var aLen = clamp(Math.abs(kk.a) * 11, 0, 90);
-    if (Math.abs(kk.a) < 0.05){
-      drawSeg(c, px, carY - 100, [{t:'a', i:1, s:20, c:PAL.aText}, {t:' = 0', s:20, c:PAL.aText}], 'center');
-    } else {
-      drawArrow(c, px, carY-88, px + Math.sign(kk.a)*aLen, carY-88, PAL.aArrow, 5);
-      drawSeg(c, px + Math.sign(kk.a)*aLen*0.5, carY - 108,
-        [{t:'a', i:1, s:20, c:PAL.aText}, {t:' = ' + fmt(kk.a) + ' m/s', s:20, c:PAL.aText},
-         {t:'2', s:14, dy:8, c:PAL.aText}], 'center');
-    }
+    var isA = (key2 === 'A');
+    var yV = carY - (isA ? 98 : 58);      /* v 行 */
+    var yA = carY - (isA ? 126 : 86);     /* a 行（始终在 v 上方） */
+    drawSeg(c, px, yV,
+      [{t:'v', i:1, s:20, c:PAL.vText},
+       {t:' = ' + (Math.abs(kk.v) < 0.05 ? '0' : fmt(kk.v)) + ' m/s', s:20, c:PAL.vText}], 'center');
+    drawSeg(c, px, yA,
+      [{t:'a', i:1, s:20, c:PAL.aText},
+       {t:' = ' + (Math.abs(kk.a) < 0.05 ? '0' : fmt(kk.a)) + ' m/s', s:20, c:PAL.aText},
+       {t:'2', s:14, dy:8, c:PAL.aText}], 'center');
   }
 
   /* 出画指示牌：同侧多块纵向错开，避免互相遮挡 */
@@ -786,7 +926,7 @@ function drawSceneRoad(c, W, H, kA, kB, fk, vis){
     if (sxp < 10 || sxp > W - 10){
       var right = sxp > W - 10;
       var idx = right ? badgesR++ : badgesL++;
-      drawEdgeBadge(c, W, carY - 14 - idx * 30, sxp,
+      drawEdgeBadge(c, W, laneY(key2) - 14 - idx * 30, sxp,
         key2 === 'A' ? 'A车' : 'B车',
         Math.round(Math.abs(carWX[key2] - cam)), key2 === 'A' ? PAL.A : PAL.B);
     }
@@ -805,6 +945,8 @@ function drawSceneRoad(c, W, H, kA, kB, fk, vis){
 
 /* ---------------- 图像绘制 ---------------- */
 var gmap = { xt:null, vt:null };
+/* 测试探针：记录两张图本帧画了什么（供无头断言，不参与渲染） */
+var dbg = { hint:{ xt:null, vt:null }, dot:{ xt:false, vt:false } };
 
 function niceStep(range, n){
   var raw = range / n, pow = Math.pow(10, Math.floor(Math.log(raw)/Math.LN10));
@@ -814,8 +956,17 @@ function niceStep(range, n){
 }
 function drawGraph(cv, ctx, kind, dt){
   var W = cv.clientWidth || 520, H = cv.clientHeight || 200;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) sizeCanvas(cv);
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.fillStyle = PAL.gBg; ctx.fillRect(0,0,W,H);
+  /* 图表面板化：圆角面板 + 竖向渐变 + 投影 + 1px 描边；后续坐标全部不变 */
+  ctx.save();
+  ctx.shadowColor = PAL.castY; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+  ctx.fillStyle = vGrad(ctx, 0, Math.round(H), PAL.gPanel0, PAL.gPanel1);
+  rrect(ctx, 0, 0, W, H, 10); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = PAL.gPanelEdge; ctx.lineWidth = 1;
+  rrect(ctx, 0.5, 0.5, W-1, H-1, 10); ctx.stroke();
+  ctx.save(); rrect(ctx, 0, 0, W, H, 10); ctx.clip();
 
   var pl = 70, pr = 14, pt = 26, pb = 42;
   var pw = W - pl - pr, ph = H - pt - pb;
@@ -845,6 +996,7 @@ function drawGraph(cv, ctx, kind, dt){
   var t0 = 0, t1 = state.tMax;
   var gkey = kind === 'x' ? 'xt' : 'vt';
   gmap[gkey] = { pl:pl, pt:pt, pw:pw, ph:ph, t0:t0, t1:t1, y0:yLo, y1:yHi, W:W, H:H };
+  dbg.hint[gkey] = null; dbg.dot[gkey] = false;
   function px(tv){ return pl + (tv - t0)/(t1 - t0) * pw; }
   function py(yv){ return pt + ph - (yv - yLo)/(yHi - yLo) * ph; }
 
@@ -904,12 +1056,13 @@ function drawGraph(cv, ctx, kind, dt){
     ctx.fillStyle = PAL.mark; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = '17px ' + FONT;
     ctx.fillText('该对象当前不可见（B 车已隐藏或不在显示范围），请更换「图像对象」', pl + pw/2, pt + ph/2);
+    ctx.restore();   /* 退出面板 clip */
     return;
   }
 
-  var showTo = state.t;
-  if (state.predict && state.revealed) showTo = state.tMax * easeReveal();
-  else if (state.predict && !state.revealed) showTo = -1;
+  /* 真实图线只在「显示图像」时画；刚点开时 1.2s 从左往右扫出 */
+  var showTo = -1;
+  if (state.revealed) showTo = state.tMax * easeReveal();
 
   /* v–t 面积（单序列时） */
   if (kind === 'v' && data.length === 1 && showTo > 0){
@@ -926,10 +1079,11 @@ function drawGraph(cv, ctx, kind, dt){
     if (started){ ctx.lineTo(px(Math.min(showTo, t1)), py(0)); ctx.closePath(); ctx.fill(); }
   }
 
-  /* 曲线 */
+  /* 曲线（先画一遍宽而淡的辉光描边，再叠原线；不用 shadowBlur —— 每帧两条曲线 ×2 图） */
   for (i = 0; i < data.length; i++){
     var pts2 = data[i];
-    ctx.strokeStyle = series[i].color; ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.strokeStyle = rgba(series[i].color, 0.15); ctx.lineWidth = 6.5;
     ctx.beginPath();
     var pen = false;
     for (k = 0; k < pts2.length; k++){
@@ -940,27 +1094,32 @@ function drawGraph(cv, ctx, kind, dt){
       if (!pen){ ctx.moveTo(X, Y); pen = true; } else ctx.lineTo(X, Y);
     }
     ctx.stroke();
-    if (!state.predict && state.t > 0){
+    ctx.strokeStyle = series[i].color; ctx.lineWidth = 2.5;
+    ctx.stroke();
+    /* 圆点只在「图像已显示」且扫出动画已越过当前时刻时画；
+       隐藏图像 / 手动画图时都不该出现孤立圆点 */
+    if (state.revealed && state.t > 0 && state.t <= showTo + 1e-9){
       var cy2 = seriesY(series[i], kind, state.t);
       if (cy2 >= yLo && cy2 <= yHi){
         ctx.fillStyle = series[i].color;
         ctx.beginPath(); ctx.arc(px(state.t), py(cy2), 5, 0, TAU); ctx.fill();
+        if (typeof dbg !== 'undefined') dbg.dot[gkey] = true;
       }
     }
   }
 
   /* 当前时刻竖直虚线（可在图上左右拖动） */
-  if (!(state.predict && !state.revealed)){
-    ctx.strokeStyle = PAL.tline; ctx.lineWidth = 1.5; ctx.setLineDash([6,5]);
-    ctx.beginPath(); ctx.moveTo(px(state.t), pt); ctx.lineTo(px(state.t), pt+ph); ctx.stroke();
-    ctx.setLineDash([]);
-  }
+  /* 当前时刻竖直虚线：一直画，手动画图时也作为时间参照 */
+  ctx.strokeStyle = PAL.tline; ctx.lineWidth = 1.5; ctx.setLineDash([6,5]);
+  ctx.beginPath(); ctx.moveTo(px(state.t), pt); ctx.lineTo(px(state.t), pt+ph); ctx.stroke();
+  ctx.setLineDash([]);
 
   /* 徒手笔画 */
   var stks = strokes[gkey];
   for (i = 0; i < stks.length; i++){
     var st = stks[i];
-    if (state.predict && state.revealed && st.ok !== undefined){
+    /* 判分着色只看「显示图像」后是否算过误差，不再要求仍处于画图模式 */
+    if (state.revealed && st.ok !== undefined){
       for (k = 1; k < st.pts.length; k++){
         ctx.strokeStyle = st.ok[k] ? PAL.devOk : PAL.devBad;
         ctx.lineWidth = 3.5; ctx.lineCap = 'round';
@@ -989,14 +1148,38 @@ function drawGraph(cv, ctx, kind, dt){
     ctx.fillStyle = PAL.gText;
     ctx.fillText(series[i].name, lx, pt + 14 + i*18);
   }
-  /* 预测提示 */
-  if (state.predict && !state.revealed){
-    ctx.fillStyle = PAL.hint;
-    ctx.fillRect(pl, pt, pw, ph);
-    ctx.fillStyle = PAL.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = '600 17px ' + FONT;
-    ctx.fillText('请用鼠标在此画出你预测的图线，再点「揭示答案」', pl + pw/2, pt + 20);
+  /* 空图提示
+     · 手动画图：半透明遮罩 + 两行指引（27 字一行在 pw≈280 时即使 11px 也放不下，必须拆行）
+     · 仅隐藏图像：只写一行浅色说明，不加遮罩，免得盖住网格与刻度 */
+  if (state.predict || !state.revealed){
+    var hLines = state.predict
+      ? ['请用鼠标在此画出你预测的图线', '再点「显示图像」对比']
+      : ['图像已隐藏，点「显示图像」查看'];
+    var hWeight = state.predict ? '600 ' : '';
+    var hfs = state.predict ? 17 : 15, hj, hw;
+    for (; hfs > 12; hfs--){
+      ctx.font = hWeight + hfs + 'px ' + FONT;
+      hw = 0;
+      for (hj = 0; hj < hLines.length; hj++) hw = Math.max(hw, ctx.measureText(hLines[hj]).width);
+      if (hw <= pw - 20) break;
+    }
+    hfs = Math.max(hfs, 12);
+    ctx.font = hWeight + hfs + 'px ' + FONT;
+    if (state.predict){
+      ctx.fillStyle = PAL.hint; ctx.fillRect(pl, pt, pw, ph);
+      ctx.fillStyle = PAL.ink;
+    } else {
+      ctx.fillStyle = PAL.gTick;
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    var hLh = Math.round(hfs * 1.45);
+    var hy0 = pt + ph/2 - (hLines.length - 1) * hLh / 2;
+    for (hj = 0; hj < hLines.length; hj++) ctx.fillText(hLines[hj], pl + pw/2, hy0 + hj * hLh);
+    if (typeof dbg !== 'undefined') dbg.hint[gkey] = state.predict ? 'predict' : 'empty';
+  } else if (typeof dbg !== 'undefined'){
+    dbg.hint[gkey] = null;
   }
+  ctx.restore();   /* 退出面板 clip */
 }
 function easeReveal(){
   var el = (performance.now() - state.revealStart) / 1200;
@@ -1024,20 +1207,6 @@ function computeDev(kind){
 
 /* ---------------- 读数面板 ---------------- */
 function updateReadout(){
-  var fk = frameCar() ? kin(frameCar(), state.t) : {x:0,v:0,a:0};
-  $('relNote').textContent = '读数相对参考系：' + frameName();
-  var vis = visibleCars();
-  var ka = relK(kin(state.cars.A, state.t), fk);
-  var kb = relK(kin(state.cars.B, state.t), fk);
-  $('rAx').textContent = fmt(ka.x);
-  $('rAv').textContent = fmt(ka.v);
-  $('rAa').textContent = fmt(ka.a);
-  $('rBx').textContent = fmt(kb.x);
-  $('rBv').textContent = fmt(kb.v);
-  $('rBa').textContent = fmt(kb.a);
-  $('rowA').style.opacity = vis.indexOf('A') >= 0 ? 1 : 0.4;
-  $('rowB').style.display = state.showB ? '' : 'none';   /* 空串＝沿用 .rRow 的 subgrid 布局 */
-  $('rowB').style.opacity = vis.indexOf('B') >= 0 ? 1 : 0.4;
   $('tNow').textContent = fmt(state.t);
   $('tAll').textContent = fmt(state.tMax);
   $('zoomLabel').textContent = Math.round(ppm / (fitPpm || ppm) * 100) + '%';
@@ -1053,6 +1222,7 @@ function clearGhosts(){ state.ghosts = []; }
     state.t = clamp(state.t, 0, state.tMax);
     clearGhosts();
     state.revealed = false; state.revealT = 0;
+    syncCurveBtn();          /* 图线已被隐藏，按钮文案同步回「显示图像」 */
     /* 刻意不调用 snapScale：调节初始条件不应改变画面缩放 */
   }
 function bindPair(idN, idR, apply){
@@ -1093,7 +1263,6 @@ $('resetBtn').addEventListener('click', doReset);
 $('speedSel').addEventListener('change', function(){ state.speed = parseFloat(this.value) || 1; });
 
 function togglePlay(){
-  if (state.predict) return;
   if (state.t >= state.tMax) state.t = 0;
   state.playing = !state.playing;
   $('playBtn').textContent = state.playing ? '⏸ 暂停' : '▶ 播放';
@@ -1102,7 +1271,6 @@ function doReset(){
   state.playing = false; state.t = 0;
   $('playBtn').textContent = '▶ 播放';
   clearGhosts();
-  state.revealed = false; state.revealT = 0;
   resetCam();
 }
 
@@ -1144,6 +1312,7 @@ var PRESETS = [
 ];
 function applyPreset(idx){
   var p = PRESETS[idx];
+  state.preset = idx;
   var A = state.cars.A, B = state.cars.B;
   A.x0 = p.A.x0; A.v0 = p.A.v0; A.a = p.A.a; A.stop = p.A.stop;
   B.x0 = p.B.x0; B.v0 = p.B.v0; B.a = p.B.a; B.stop = p.B.stop;
@@ -1151,57 +1320,70 @@ function applyPreset(idx){
   state.t = 0; state.playing = false; $('playBtn').textContent = '▶ 播放';
   state.ghosts = [];
   strokes.xt = []; strokes.vt = [];
-  state.predict = false; state.revealed = false; state.revealT = 0;
-  $('predBtn').classList.remove('on');
-  $('predBtn').textContent = '✎ 预测模式';
-  $('clearBtn').disabled = true; $('revealBtn').disabled = true;
+  state.objBeforePredict = null;               /* 换情境后重新记录，避免沿上一情境的对象 */
   state.graphObj = 'both'; $('objSel').value = 'both';
+  zoomBoost = (idx === 0) ? 1.5 : 1;           /* 情境1 用 150% 作为基准视图，其余情境保持适配视图 */
   setFrame('ground');
   syncInputs();
   snapScale();
+  state.predict = false;                       /* 先清标志，下面的 setPredict 才会真正执行 */
+  setPredict(false);                           /* 与页面默认态一致：不进入手动画图 */
+  setCurves(false);                            /* 图线隐藏，按钮文案回到「显示图像」 */
 }
 $('q1').addEventListener('click', function(){ applyPreset(0); });
 $('q2').addEventListener('click', function(){ applyPreset(1); });
 $('q3').addEventListener('click', function(){ applyPreset(2); });
 
-/* 预测模式 */
-$('predBtn').addEventListener('click', function(){
-  state.predict = !state.predict;
-  this.classList.toggle('on', state.predict);
-  this.textContent = state.predict ? '✎ 退出预测' : '✎ 预测模式';
-  $('clearBtn').disabled = !state.predict;
-  $('revealBtn').disabled = !state.predict;
+/* ===== 手动画图 / 显示图像 =====
+   两个独立动作：
+   · 「✎ 手动画图」→ 进入画图模式：藏起真实图线、允许在图上画预测线（播放不受影响）；
+   · 「显示图像 / 隐藏图像」→ 切换真实图线，并一律退出手动画图模式。
+   页面默认进入手动画图模式（见文件末尾启动序列）。 */
+function syncCurveBtn(){
+  var b = $('revealBtn');
+  if (b) b.textContent = state.revealed ? '隐藏图像' : '显示图像';
+}
+function setCurves(show){
+  state.revealed = !!show;
+  state.revealStart = performance.now();      /* 从头扫出（1.2 s） */
+  state.revealT = 0;
+  syncCurveBtn();
+}
+function setPredict(on){
+  if (on && state.predict) return;            /* 已在画图中：不重复进入 */
+  state.predict = !!on;
+  var pb = $('predBtn');
+  pb.classList.toggle('on', state.predict);
   if (state.predict){
-    state.playing = false; $('playBtn').textContent = '▶ 播放';
-    state.objBeforePredict = state.graphObj;   /* 记住进入预测前的图像对象 */
+    if (!state.objBeforePredict) state.objBeforePredict = state.graphObj;   /* 记住进入前的图像对象 */
     if (state.graphObj === 'both'){ $('objSel').value = 'A'; state.graphObj = 'A'; }
+    strokes.xt = []; strokes.vt = [];         /* 每轮重新画 */
+    setCurves(false);                         /* 画图时先藏起图像 */
   } else {
-    strokes.xt = []; strokes.vt = [];
-    state.revealed = false;
-    if (state.objBeforePredict){               /* 退出预测时恢复原来的图像对象 */
+    if (state.objBeforePredict){              /* 退出时恢复原来的图像对象 */
       state.graphObj = state.objBeforePredict;
       $('objSel').value = state.objBeforePredict;
       state.objBeforePredict = null;
     }
+    syncCurveBtn();
   }
-});
+}
+$('predBtn').addEventListener('click', function(){ setPredict(true); });
 $('clearBtn').addEventListener('click', function(){
-  strokes.xt = []; strokes.vt = [];
-  state.revealed = false; state.revealT = 0;
+  strokes.xt = []; strokes.vt = [];           /* 只清笔迹，不动图像显隐 */
 });
 $('revealBtn').addEventListener('click', function(){
-  if (!state.predict) return;
-  computeDev('x'); computeDev('v');
-  state.revealed = true;
-  state.revealStart = performance.now();
-  state.revealT = 0;
+  var next = !state.revealed;
+  if (state.predict) setPredict(false);       /* 点显示/隐藏图像 → 先退出手动画图 */
+  if (next){ computeDev('x'); computeDev('v'); }   /* 用来把学生笔迹判成对/错着色 */
+  setCurves(next);
 });
 $('objSel').addEventListener('change', function(){
   state.graphObj = this.value;
   if (state.graphObj === 'both' && state.predict){
     $('objSel').value = 'A'; state.graphObj = 'A';
   }
-  state.revealed = false; state.revealT = 0;
+  if (state.revealed) state.revealStart = performance.now(), state.revealT = 0;  /* 换对象后重新扫出 */
 });
 
 /* 徒手绘制（仅预测模式） */
@@ -1216,7 +1398,7 @@ function strokeNorm(cv, e, kind){
 }
 function bindDraw(cv, kind){
   cv.addEventListener('pointerdown', function(e){
-    if (!state.predict || state.revealed) return;
+    if (!state.predict) return;
     var p = strokeNorm(cv, e, kind);
     if (!p) return;
     drawing = {kind:kind, pts:[p]};
@@ -1280,10 +1462,31 @@ if (typeof document !== 'undefined' && document.addEventListener){
 }
 
 /* ---------------- 主循环 ---------------- */
+/* 各情境的自动停止条件：
+   情境1 —— A 车追上并与 B 车重合（xA ≥ xB）；
+   情境2 —— A 车速度减到 0（刹车模型停住）；
+   情境3 —— 不设条件，播到总时间结束。 */
+function stopHit(t){
+  var A = state.cars.A, B = state.cars.B;
+  if (state.preset === 0) return kin(A, t).x >= kin(B, t).x;
+  if (state.preset === 1) return t > 0 && kin(A, t).v <= 0;
+  return false;
+}
 function stepOnce(dt){
   if (state.playing){
     var prev = state.t;
     state.t = Math.min(state.tMax, state.t + dt * state.speed);
+    /* 越过停止条件的第 1 帧：二分到毫米级，把时间定格在相遇/停住那一刻 */
+    if (!stopHit(prev) && stopHit(state.t)){
+      var lo = prev, hi = state.t, mid, bi;
+      for (bi = 0; bi < 24; bi++){
+        mid = (lo + hi) / 2;
+        if (stopHit(mid)) hi = mid; else lo = mid;
+      }
+      state.t = hi;
+      state.playing = false;
+      var pbStop = $('playBtn'); if (pbStop) pbStop.textContent = '▶ 播放';
+    }
     if (state.strobe && !state.predict){
       var k0 = Math.floor(prev) + 1, k1 = Math.floor(state.t);
       for (var k = k0; k <= k1; k++){
@@ -1317,7 +1520,8 @@ function frame(ts){
 }
 
 resize();
-syncInputs();                  /* 启动时把 state 的初始参数写回输入框，避免 HTML 静态初值与 state 不同步 */
+/* 打开页面就等于「情境1」：参数、总时间 16 s、150% 基准视图、隐藏图像，全部由 applyPreset 统一设置 */
+applyPreset(0);
 drawAll(0);
 requestAnimationFrame(frame);
 /* 字体与布局稳定后重算一次动画区高度 */
@@ -1329,6 +1533,8 @@ if (typeof window !== 'undefined' && window.addEventListener){
 if (typeof globalThis !== 'undefined'){
   globalThis.__api = {
     state: state, strokes: strokes, kin: kin, gmap: gmap,
+    getDbg: function(){ return dbg; },
+    getZoom: function(){ return { ppm:ppm, fitPpm:fitPpm, boost:zoomBoost, cam:cam, orgX:(cvS.clientWidth||0)*ORGX_RATIO }; },
     THEMES: THEMES, getPal: function(){ return PAL; }, setTheme: setTheme,
     getCam: function(){ return cam; }, getPpm: function(){ return ppm; },
     PRESETS: PRESETS, applyPreset: applyPreset,

@@ -51,6 +51,7 @@ collections:
       - { name: date, label: 日期, widget: datetime, date_format: "YYYY-MM-DD", time_format: false, required: false }
       - { name: featured, label: 首页精选, widget: boolean, default: false }
       - { name: embed, label: 嵌入地址, widget: string, hint: "动画 html 的相对路径（如 animations/xxx.html），或完整网址" }
+      - { name: cover, label: 封面图, widget: image, required: false, hint: "卡片顶部 16:9 图片，建议 1280×720；填相对路径（如 covers/xxx.jpg）" }
       - { name: body, label: 说明（支持公式）, widget: markdown, required: false }
 
   - name: lectures
