@@ -189,9 +189,11 @@ input[type=checkbox]{accent-color:var(--accent)}
         <div class="playGroup">
           <button class="btn play" id="playBtn">▶ 播放</button>
           <button class="btn" id="resetBtn">↺ 重置</button>
-          <select id="speedSel" title="播放速度">
+          <select id="speedSel" title="播放速度（相对正常速度的倍数）">
+            <option value="0.25">0.25× 慢放</option>
             <option value="0.5">0.5× 慢放</option>
             <option value="1" selected>1× 正常</option>
+            <option value="1.5">1.5× 快放</option>
             <option value="2">2× 快放</option>
           </select>
         </div>
@@ -329,13 +331,20 @@ var THEMES = {
     hi:'#ffffff', lo:'#5b6b80'
   }
 };
+/* 正常速度（1× 档）对应的模拟时间倍率。
+   用户 2026-10-26 定：把原来的播放速度整体加快 1.5 倍当作「正常速度」，
+   下拉档位 0.25×/0.5×/1×/1.5×/2× 都是相对这个正常速度的倍数，
+   即 state.speed = SPEED_BASE × 档位。 */
+var SPEED_BASE = 1.5;
+var speedGear = 1;           /* 当前档位（相对倍数），只用于界面显示 */
+
 var state = {
   theme:'dark',
-  t:0, tMax:16, playing:false, speed:1,
+  t:0, tMax:16, playing:false, speed:SPEED_BASE,
   frame:'ground',            /* ground | A | B */
   strobe:false, showB:true,
   graphObj:'both',           /* A | B | both | mark */
-  preset:0,                  /* 当前情境索引：0 追及重合即停、1 A 车停住即停 */
+  preset:0,                  /* 当前情境索引：0 无自动停止（相遇后继续运动）、1 A 车停住即停 */
   objBeforePredict:null,     /* 进入预测模式前的图像对象，退出时恢复 */
   predict:false, revealed:false, revealStart:0, revealT:0,
   ghosts:[],
@@ -1060,9 +1069,12 @@ function drawGraph(cv, ctx, kind, dt){
     return;
   }
 
-  /* 真实图线只在「显示图像」时画；刚点开时 1.2s 从左往右扫出 */
+  /* 真实图线只在「显示图像」时画，而且**只画到当前时刻 state.t**：
+     图像必须与两车已经走过的运动一一对应 —— 车还没动就点开是空图（只有坐标轴），
+     播放中图线随运动一起向右生长；刚点亮时用 1.2s 把 0→t 这一段扫出来。
+     （旧写法是 tMax×扫出进度，等于一按就把整条曲线画完，与运动脱节。） */
   var showTo = -1;
-  if (state.revealed) showTo = state.tMax * easeReveal();
+  if (state.revealed && state.t > 0) showTo = state.t * easeReveal();
 
   /* v–t 面积（单序列时） */
   if (kind === 'v' && data.length === 1 && showTo > 0){
@@ -1151,10 +1163,12 @@ function drawGraph(cv, ctx, kind, dt){
   /* 空图提示
      · 手动画图：半透明遮罩 + 两行指引（27 字一行在 pw≈280 时即使 11px 也放不下，必须拆行）
      · 仅隐藏图像：只写一行浅色说明，不加遮罩，免得盖住网格与刻度 */
-  if (state.predict || !state.revealed){
+  if (state.predict || !state.revealed || state.t <= 0){
     var hLines = state.predict
       ? ['请用鼠标在此画出你预测的图线', '再点「显示图像」对比']
-      : ['图像已隐藏，点「显示图像」查看'];
+      : (!state.revealed
+          ? ['图像已隐藏，点「显示图像」查看']
+          : ['尚未开始运动，图线将随运动向右生长']);
     var hWeight = state.predict ? '600 ' : '';
     var hfs = state.predict ? 17 : 15, hj, hw;
     for (; hfs > 12; hfs--){
@@ -1260,7 +1274,10 @@ $('showBChk').addEventListener('change', function(){
 
 $('playBtn').addEventListener('click', togglePlay);
 $('resetBtn').addEventListener('click', doReset);
-$('speedSel').addEventListener('change', function(){ state.speed = parseFloat(this.value) || 1; });
+$('speedSel').addEventListener('change', function(){
+  speedGear = parseFloat(this.value) || 1;
+  state.speed = SPEED_BASE * speedGear;   /* 档位是相对「正常速度」的倍数 */
+});
 
 function togglePlay(){
   if (state.t >= state.tMax) state.t = 0;
@@ -1463,12 +1480,12 @@ if (typeof document !== 'undefined' && document.addEventListener){
 
 /* ---------------- 主循环 ---------------- */
 /* 各情境的自动停止条件：
-   情境1 —— A 车追上并与 B 车重合（xA ≥ xB）；
+   情境1 —— 不设停止条件：相遇（重合）后两车继续运动，把「追上 → 并排 → 超越」全过程都看到，
+             播到总时间结束自然停住；
    情境2 —— A 车速度减到 0（刹车模型停住）；
    情境3 —— 不设条件，播到总时间结束。 */
 function stopHit(t){
-  var A = state.cars.A, B = state.cars.B;
-  if (state.preset === 0) return kin(A, t).x >= kin(B, t).x;
+  var A = state.cars.A;
   if (state.preset === 1) return t > 0 && kin(A, t).v <= 0;
   return false;
 }
